@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use crate::error::{GitError, Result};
-use crate::utils::git;
+use crate::utils::{git, git_raw};
 
 static GIT_CHECKED: OnceLock<Result<()>> = OnceLock::new();
 
@@ -24,7 +24,7 @@ impl Repository {
     pub fn ensure_git() -> Result<()> {
         GIT_CHECKED
             .get_or_init(|| {
-                git(&["--version"], None)
+                git_raw(&["--version"], None)
                     .map_err(|_| GitError::CommandFailed("Git not found in PATH".to_string()))
                     .map(|_| ())
             })
@@ -54,15 +54,11 @@ impl Repository {
         }
 
         // Check if it's a valid git repository by running git status
-        let output = git(&["status", "--porcelain"], Some(path_ref))?;
-
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(GitError::CommandFailed(format!(
+        let _stdout = git(&["status", "--porcelain"], Some(path_ref))
+            .map_err(|_| GitError::CommandFailed(format!(
                 "Not a git repository: {}",
-                error_msg
-            )));
-        }
+                path_ref.display()
+            )))?;
 
         Ok(Self {
             repo_path: path_ref.to_path_buf(),
@@ -88,15 +84,7 @@ impl Repository {
         }
         args.push(path.as_ref().to_str().unwrap_or(""));
 
-        let output = git(&args, None)?;
-
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(GitError::CommandFailed(format!(
-                "git init failed: {}",
-                error_msg
-            )));
-        }
+        let _stdout = git(&args, None)?;
 
         Ok(Self {
             repo_path: path.as_ref().to_path_buf(),

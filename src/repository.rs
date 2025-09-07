@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::OnceLock;
 
-use crate::error::GitError;
+use crate::error::{GitError, Result};
 
-static GIT_CHECKED: OnceLock<Result<(), GitError>> = OnceLock::new();
+static GIT_CHECKED: OnceLock<Result<()>> = OnceLock::new();
 
 pub struct Repository {
     repo_path: PathBuf,
@@ -21,7 +21,7 @@ impl Repository {
     /// # Returns
     ///
     /// A `Result` containing either `Ok(())` if Git is available or a `GitError`.
-    pub fn ensure_git() -> Result<(), GitError> {
+    pub fn ensure_git() -> Result<()> {
         GIT_CHECKED.get_or_init(|| {
             Command::new("git")
                 .arg("--version")
@@ -40,7 +40,7 @@ impl Repository {
     /// # Returns
     ///
     /// A `Result` containing either the opened `Repository` instance or a `GitError`.
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, GitError> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         Self::ensure_git()?;
         
         let path_ref = path.as_ref();
@@ -84,7 +84,7 @@ impl Repository {
     /// # Returns
     ///
     /// A `Result` containing either the initialized `Repository` instance or a `GitError`.
-    pub fn init<P: AsRef<Path>>(path: P, bare: bool) -> Result<Self, GitError> {
+    pub fn init<P: AsRef<Path>>(path: P, bare: bool) -> Result<Self> {
         Self::ensure_git()?;
 
         let mut cmd = Command::new("git");

@@ -1,0 +1,1 @@
+- We are using Rust edition of 2024

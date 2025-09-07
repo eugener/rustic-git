@@ -12,5 +12,7 @@
 - **Command execution**: Use std::process::Command with proper error handling and stderr capture
 
 ## Implementation
-- Available methods: Repository::init(path, bare), Repository::open(path)
+- Available methods: Repository::init(path, bare), Repository::open(path), Repository::status()
+- Status functionality: GitStatus with FileStatus enum, files as Box<[(FileStatus, String)]>
+- Utility functions: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - Run `cargo build && cargo test` after code changes

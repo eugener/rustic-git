@@ -1,1 +1,7 @@
 - We are using Rust edition of 2024
+- Follow the Rust style guide for naming conventions and formatting
+- Implement best practices for code organization and maintainability
+- Use Repository-centric API design with static lifecycle methods (init, open) and instance methods for operations
+- Always call Repository::ensure_git() before git operations to validate git availability
+- Use PathBuf for internal path handling, &Path for method parameters and returns
+- Run `cargo build && cargo test` after code changes

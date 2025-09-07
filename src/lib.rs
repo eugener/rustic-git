@@ -20,6 +20,22 @@ impl From<io::Error> for GitError {
 }
 
 impl Repository {
+    /// Ensure that Git is available in the system PATH.
+    ///
+    /// This function checks if the `git` command is available in the system PATH.
+    /// If Git is not found, it returns a `GitError::CommandFailed` with an appropriate error message.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing either `Ok(())` if Git is available or a `GitError`.
+    pub fn ensure_git() -> Result<(), GitError> {
+        Command::new("git")
+            .arg("--version")
+            .output()
+            .map_err(|_| GitError::CommandFailed("Git not found in PATH".to_string()))?;
+        Ok(())
+    }
+
     /// Initialize a new Git repository at the specified path.
     ///
     /// # Arguments
@@ -31,6 +47,8 @@ impl Repository {
     ///
     /// A `Result` containing either the initialized `Repository` instance or a `GitError`.
     pub fn init<P: AsRef<Path>>(path: P, bare: bool) -> Result<Self, GitError> {
+        Self::ensure_git()?;
+
         let mut cmd = Command::new("git");
         cmd.arg("init");
 

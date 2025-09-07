@@ -1,13 +1,13 @@
 use std::io;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum GitError {
-    IoError(io::Error),
+    IoError(String),
     CommandFailed(String),
 }
 
 impl From<io::Error> for GitError {
     fn from(error: io::Error) -> Self {
-        GitError::IoError(error)
+        GitError::IoError(error.to_string())
     }
 }

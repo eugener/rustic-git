@@ -1,0 +1,25 @@
+use std::path::Path;
+use std::process::Command;
+
+use crate::error::{GitError, Result};
+
+/// Executes a git command with the given arguments and working directory.
+///
+/// # Arguments
+///
+/// * `args` - The arguments to pass to the git command.
+/// * `working_dir` - The working directory to use for the git command.
+///
+/// # Returns
+///
+/// A `Result` containing the output of the git command or a `GitError` if the command fails.
+pub fn git(args: &[&str], working_dir: Option<&Path>) -> Result<std::process::Output> {
+    let mut cmd = Command::new("git");
+    cmd.args(args);
+
+    if let Some(dir) = working_dir {
+        cmd.current_dir(dir);
+    }
+
+    cmd.output().map_err(GitError::from)
+}

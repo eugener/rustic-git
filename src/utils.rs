@@ -49,3 +49,130 @@ pub fn git_raw(args: &[&str], working_dir: Option<&Path>) -> Result<std::process
 
     cmd.output().map_err(GitError::from)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::path::Path;
+
+    #[test]
+    fn test_git_raw_version_command() {
+        let result = git_raw(&["--version"], None);
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(output.status.success());
+        assert!(!output.stdout.is_empty());
+        
+        let stdout_str = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout_str.contains("git version"));
+    }
+
+    #[test]
+    fn test_git_version_command() {
+        let result = git(&["--version"], None);
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(output.contains("git version"));
+    }
+
+    #[test]
+    fn test_git_raw_invalid_command() {
+        let result = git_raw(&["invalid-command-that-does-not-exist"], None);
+        assert!(result.is_ok()); // Command executes but fails
+        
+        let output = result.unwrap();
+        assert!(!output.status.success());
+        assert!(!output.stderr.is_empty());
+    }
+
+    #[test]
+    fn test_git_invalid_command_returns_error() {
+        let result = git(&["invalid-command-that-does-not-exist"], None);
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            GitError::CommandFailed(msg) => {
+                assert!(msg.contains("git invalid-command-that-does-not-exist failed"));
+            },
+            _ => panic!("Expected CommandFailed error"),
+        }
+    }
+
+    #[test]
+    fn test_git_with_working_directory() {
+        let temp_dir = env::temp_dir();
+        let result = git(&["--version"], Some(&temp_dir));
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(output.contains("git version"));
+    }
+
+    #[test]
+    fn test_git_raw_with_working_directory() {
+        let temp_dir = env::temp_dir();
+        let result = git_raw(&["--version"], Some(&temp_dir));
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(output.status.success());
+    }
+
+    #[test]
+    fn test_git_with_nonexistent_working_directory() {
+        let nonexistent_path = Path::new("/nonexistent/path/that/should/not/exist");
+        let result = git(&["--version"], Some(nonexistent_path));
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            GitError::IoError(_) => {}, // Expected
+            _ => panic!("Expected IoError for nonexistent directory"),
+        }
+    }
+
+    #[test]
+    fn test_git_raw_with_nonexistent_working_directory() {
+        let nonexistent_path = Path::new("/nonexistent/path/that/should/not/exist");
+        let result = git_raw(&["--version"], Some(nonexistent_path));
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            GitError::IoError(_) => {}, // Expected
+            _ => panic!("Expected IoError for nonexistent directory"),
+        }
+    }
+
+    #[test]
+    fn test_git_empty_args() {
+        let result = git(&[], None);
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            GitError::CommandFailed(msg) => {
+                assert!(msg.contains("git <unknown> failed") || msg.contains("usage"));
+            },
+            _ => panic!("Expected CommandFailed error for empty args"),
+        }
+    }
+
+    #[test]
+    fn test_git_raw_empty_args() {
+        let result = git_raw(&[], None);
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(!output.status.success());
+    }
+
+    #[test]
+    fn test_git_help_command() {
+        let result = git(&["--help"], None);
+        assert!(result.is_ok());
+        
+        let output = result.unwrap();
+        assert!(output.contains("usage:") || output.contains("Git") || output.contains("git"));
+    }
+}

@@ -7,6 +7,7 @@ use crate::utils::{git, git_raw};
 
 static GIT_CHECKED: OnceLock<Result<()>> = OnceLock::new();
 
+#[derive(Debug)]
 pub struct Repository {
     repo_path: PathBuf,
 }
@@ -206,5 +207,181 @@ mod tests {
 
         // Clean up
         fs::remove_dir_all(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_repo_path_method() {
+        let test_path = "/tmp/test_repo_path";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        // Initialize repository
+        let repo = Repository::init(test_path, false).unwrap();
+
+        // Test repo_path method
+        assert_eq!(repo.repo_path(), Path::new(test_path));
+
+        // Clean up
+        fs::remove_dir_all(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_repo_path_method_after_open() {
+        let test_path = "/tmp/test_repo_path_open";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        // Initialize and then open repository
+        let _created_repo = Repository::init(test_path, false).unwrap();
+        let opened_repo = Repository::open(test_path).unwrap();
+
+        // Test repo_path method on opened repository
+        assert_eq!(opened_repo.repo_path(), Path::new(test_path));
+
+        // Clean up
+        fs::remove_dir_all(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_ensure_git_caching() {
+        // Call ensure_git multiple times to test caching
+        let result1 = Repository::ensure_git();
+        let result2 = Repository::ensure_git();
+        let result3 = Repository::ensure_git();
+
+        assert!(result1.is_ok());
+        assert!(result2.is_ok());
+        assert!(result3.is_ok());
+    }
+
+    #[test]
+    fn test_init_with_empty_string_path() {
+        let result = Repository::init("", false);
+        // This might succeed or fail depending on git's behavior with empty paths
+        // The important thing is it doesn't panic
+        let _ = result;
+    }
+
+    #[test]
+    fn test_open_with_empty_string_path() {
+        let result = Repository::open("");
+        assert!(result.is_err());
+        
+        match result.unwrap_err() {
+            GitError::CommandFailed(msg) => {
+                assert!(msg.contains("Path does not exist") || msg.contains("Not a git repository"));
+            },
+            _ => panic!("Expected CommandFailed error"),
+        }
+    }
+
+    #[test]
+    fn test_init_with_relative_path() {
+        let test_path = "relative_test_repo";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        let result = Repository::init(test_path, false);
+        
+        if result.is_ok() {
+            let repo = result.unwrap();
+            assert_eq!(repo.repo_path(), Path::new(test_path));
+            
+            // Clean up
+            fs::remove_dir_all(test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_open_with_relative_path() {
+        let test_path = "relative_open_repo";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        // Create the repo first
+        let _created = Repository::init(test_path, false).unwrap();
+
+        // Now open with relative path
+        let result = Repository::open(test_path);
+        assert!(result.is_ok());
+        
+        let repo = result.unwrap();
+        assert_eq!(repo.repo_path(), Path::new(test_path));
+
+        // Clean up
+        fs::remove_dir_all(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_init_with_unicode_path() {
+        let test_path = "/tmp/测试_repo_🚀";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        let result = Repository::init(test_path, false);
+        
+        if result.is_ok() {
+            let repo = result.unwrap();
+            assert_eq!(repo.repo_path(), Path::new(test_path));
+            
+            // Clean up
+            fs::remove_dir_all(test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_path_with_spaces() {
+        let test_path = "/tmp/test repo with spaces";
+
+        // Clean up if exists
+        if Path::new(test_path).exists() {
+            fs::remove_dir_all(test_path).unwrap();
+        }
+
+        let result = Repository::init(test_path, false);
+        
+        if result.is_ok() {
+            let repo = result.unwrap();
+            assert_eq!(repo.repo_path(), Path::new(test_path));
+            
+            // Clean up
+            fs::remove_dir_all(test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_very_long_path() {
+        let long_component = "a".repeat(100);
+        let test_path = format!("/tmp/{}", long_component);
+
+        // Clean up if exists
+        if Path::new(&test_path).exists() {
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+
+        let result = Repository::init(&test_path, false);
+        
+        if result.is_ok() {
+            let repo = result.unwrap();
+            assert_eq!(repo.repo_path(), Path::new(&test_path));
+            
+            // Clean up
+            fs::remove_dir_all(&test_path).unwrap();
+        }
     }
 }

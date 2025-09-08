@@ -35,3 +35,98 @@ impl From<&str> for Hash {
         Hash(s.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hash_creation() {
+        let hash = Hash("abc123def456".to_string());
+        assert_eq!(hash.0, "abc123def456");
+    }
+
+    #[test]
+    fn test_hash_as_str() {
+        let hash = Hash("abc123def456".to_string());
+        assert_eq!(hash.as_str(), "abc123def456");
+    }
+
+    #[test]
+    fn test_hash_short_full_length() {
+        let hash = Hash("abc123def456".to_string());
+        assert_eq!(hash.short(), "abc123d");
+    }
+
+    #[test]
+    fn test_hash_short_exactly_seven() {
+        let hash = Hash("abcdefg".to_string());
+        assert_eq!(hash.short(), "abcdefg");
+    }
+
+    #[test]
+    fn test_hash_short_less_than_seven() {
+        let hash = Hash("abc".to_string());
+        assert_eq!(hash.short(), "abc");
+    }
+
+    #[test]
+    fn test_hash_short_empty() {
+        let hash = Hash("".to_string());
+        assert_eq!(hash.short(), "");
+    }
+
+    #[test]
+    fn test_hash_display() {
+        let hash = Hash("abc123def456".to_string());
+        assert_eq!(format!("{}", hash), "abc123def456");
+    }
+
+    #[test]
+    fn test_hash_from_string() {
+        let hash: Hash = "abc123def456".to_string().into();
+        assert_eq!(hash.0, "abc123def456");
+    }
+
+    #[test]
+    fn test_hash_from_str() {
+        let hash: Hash = "abc123def456".into();
+        assert_eq!(hash.0, "abc123def456");
+    }
+
+    #[test]
+    fn test_hash_clone() {
+        let hash1 = Hash("abc123def456".to_string());
+        let hash2 = hash1.clone();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_debug() {
+        let hash = Hash("abc123def456".to_string());
+        let debug_str = format!("{:?}", hash);
+        assert!(debug_str.contains("abc123def456"));
+    }
+
+    #[test]
+    fn test_hash_partial_eq() {
+        let hash1 = Hash("abc123def456".to_string());
+        let hash2 = Hash("abc123def456".to_string());
+        let hash3 = Hash("different".to_string());
+        
+        assert_eq!(hash1, hash2);
+        assert_ne!(hash1, hash3);
+    }
+
+    #[test]
+    fn test_hash_from_conversions_edge_cases() {
+        let empty_string: Hash = "".into();
+        assert_eq!(empty_string.0, "");
+        
+        let empty_owned: Hash = String::new().into();
+        assert_eq!(empty_owned.0, "");
+        
+        let unicode: Hash = "🚀commit".into();
+        assert_eq!(unicode.0, "🚀commit");
+    }
+}

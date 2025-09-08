@@ -1,6 +1,7 @@
 - We are using Rust edition of 2024
 - Follow the Rust style guide for naming conventions and formatting
 - Implement best practices for code organization and maintainability
+- Do not use emoji while coding
 
 ## Design Choices
 - **Repository-centric API**: Static lifecycle methods (init, open) return Repository instances, instance methods for git operations
@@ -21,3 +22,17 @@
 - Command modules: status.rs, add.rs, commit.rs (in src/commands/)
 - Core types: Hash (in src/types.rs)
 - Run `cargo build && cargo test` after code changes
+- Make sure all examples are running
+
+## Examples
+The `examples/` directory contains comprehensive demonstrations of library functionality:
+
+- **basic_usage.rs**: Complete workflow from init to commit - demonstrates fundamental rustic-git usage
+- **repository_operations.rs**: Repository lifecycle - init regular/bare repos, open existing repos, error handling
+- **status_checking.rs**: GitStatus and FileStatus usage - all status query methods and file state filtering
+- **staging_operations.rs**: Staging operations - add(), add_all(), add_update() with before/after comparisons
+- **commit_workflows.rs**: Commit operations and Hash type - commit(), commit_with_author(), Hash methods
+- **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
+
+Run examples with: `cargo run --example <example_name>`
+All examples use temporary directories and include cleanup for safe execution.

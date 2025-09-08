@@ -1,7 +1,12 @@
+# Rustic Git - Development Guidelines
+
+## Code Standards
 - We are using Rust edition of 2024
 - Follow the Rust style guide for naming conventions and formatting
 - Implement best practices for code organization and maintainability
-- Do not use emoji while coding
+- Do not use emoji while coding or in commit messages
+- Follow conventional commit format: type(scope): description
+- Use commit types: feat, fix, docs, style, refactor, test, chore
 
 ## Design Choices
 - **Repository-centric API**: Static lifecycle methods (init, open) return Repository instances, instance methods for git operations
@@ -36,3 +41,21 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 
 Run examples with: `cargo run --example <example_name>`
 All examples use temporary directories and include cleanup for safe execution.
+
+## Contributing Guidelines
+
+### Development Workflow
+Before any code changes, ensure you follow this workflow:
+
+1. **Format code**: `cargo fmt`
+2. **Build project**: `cargo build` 
+3. **Run all tests**: `cargo test`
+4. **Run linting**: `cargo clippy --all-targets --all-features -- -D warnings` (no warnings allowed)
+5. **Verify examples**: Make sure all examples run successfully
+
+### Pull Request Requirements
+1. All tests must pass and examples must run successfully
+2. Code must be properly formatted and pass clippy without warnings
+3. Follow the project's design principles and architecture patterns
+4. Use conventional commit messages with appropriate types
+5. Keep commit messages concise and in present tense

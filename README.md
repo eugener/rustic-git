@@ -9,7 +9,7 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 ## Features
 
 - ✅ Repository initialization and opening
-- ✅ File status checking with detailed parsing  
+- ✅ File status checking with detailed parsing
 - ✅ File staging (add files, add all, add updates)
 - ✅ Commit creation with hash return
 - ✅ Type-safe error handling
@@ -33,26 +33,26 @@ use rustic_git::{Repository, Result};
 fn main() -> Result<()> {
     // Initialize a new repository
     let repo = Repository::init("/path/to/repo", false)?;
-    
+
     // Or open an existing repository
     let repo = Repository::open("/path/to/existing/repo")?;
-    
+
     // Check repository status
     let status = repo.status()?;
     if !status.is_clean() {
         println!("Modified files: {:?}", status.modified_files());
         println!("Untracked files: {:?}", status.untracked_files());
     }
-    
+
     // Stage files
     repo.add(&["file1.txt", "file2.txt"])?;
     // Or stage all changes
     repo.add_all()?;
-    
+
     // Create a commit
     let hash = repo.commit("Add new features")?;
     println!("Created commit: {}", hash.short());
-    
+
     Ok(())
 }
 ```
@@ -69,7 +69,7 @@ Initialize a new Git repository.
 // Initialize a regular repository
 let repo = Repository::init("/path/to/repo", false)?;
 
-// Initialize a bare repository  
+// Initialize a bare repository
 let bare_repo = Repository::init("/path/to/bare-repo", true)?;
 ```
 
@@ -181,7 +181,7 @@ Create a commit with a custom author.
 
 ```rust
 let hash = repo.commit_with_author(
-    "Add new feature", 
+    "Add new feature",
     "Jane Developer <jane@example.com>"
 )?;
 ```
@@ -226,19 +226,19 @@ use std::fs;
 fn main() -> rustic_git::Result<()> {
     // Create a new repository
     let repo = Repository::init("./my-project", false)?;
-    
+
     // Create some files
     fs::write("./my-project/README.md", "# My Project")?;
     fs::write("./my-project/src/main.rs", "fn main() { println!(\"Hello!\"); }")?;
     fs::create_dir_all("./my-project/src")?;
-    
+
     // Check status
     let status = repo.status()?;
     println!("Found {} untracked files", status.untracked_files().len());
-    
+
     // Stage all files
     repo.add_all()?;
-    
+
     // Verify staging
     let status = repo.status()?;
     let added_files: Vec<_> = status.files.iter()
@@ -246,16 +246,16 @@ fn main() -> rustic_git::Result<()> {
         .map(|(_, f)| f)
         .collect();
     println!("Staged files: {:?}", added_files);
-    
+
     // Create initial commit
     let hash = repo.commit("Initial commit with project structure")?;
     println!("Created commit: {}", hash.short());
-    
+
     // Verify clean state
     let status = repo.status()?;
     assert!(status.is_clean());
     println!("Repository is now clean!");
-    
+
     Ok(())
 }
 ```
@@ -273,7 +273,7 @@ cargo run --example basic_usage
 # Repository lifecycle operations
 cargo run --example repository_operations
 
-# Status checking and file state filtering  
+# Status checking and file state filtering
 cargo run --example status_checking
 
 # Staging operations (add, add_all, add_update)
@@ -309,13 +309,58 @@ All tests create temporary repositories in `/tmp/` and clean up after themselves
 
 ## Contributing
 
-This library follows these design principles:
+We welcome contributions! Please follow these guidelines when contributing to rustic-git:
 
-- **Repository-centric API**: Static lifecycle methods (`init`, `open`) return `Repository` instances
-- **Type safety**: Strong typing with custom error types and structured return values  
-- **Ergonomic design**: Clean, intuitive API that follows Rust conventions
-- **Comprehensive testing**: All functionality thoroughly tested
-- **Modular organization**: Commands organized in separate modules
+### Code Standards
+
+- **Rust Edition**: Use Rust edition 2024
+- **Style Guide**: Follow the Rust style guide for naming conventions and formatting
+- **Code Quality**: Implement best practices for code organization and maintainability
+- **No Emojis**: Do not use emoji in code or commit messages
+
+### Design Principles
+
+- **Repository-centric API**: Static lifecycle methods (`init`, `open`) return `Repository` instances, instance methods for git operations
+- **Module-based organization**: Separate files for repository.rs, error.rs, with lib.rs for re-exports only
+- **Co-located unit tests**: Tests within each module (`#[cfg(test)] mod tests`) rather than separate test files
+- **Early validation**: Always call `Repository::ensure_git()` before git operations to validate git availability
+- **Path handling**: Use `PathBuf` for internal storage, `&Path` for method parameters and returns, `impl AsRef<Path>` for flexibility
+- **Error handling**: Custom `GitError` enum with `From<io::Error>` trait for ergonomic error propagation
+- **Command execution**: Use `std::process::Command` with proper error handling and stderr capture
+
+### Development Workflow
+
+Before submitting a pull request, ensure your code passes all checks:
+
+```bash
+# Format code
+cargo fmt
+
+# Build project
+cargo build
+
+# Run all tests
+cargo test
+
+# Run linting (no warnings allowed)
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Verify all examples work
+cargo run --example basic_usage
+cargo run --example repository_operations
+cargo run --example status_checking
+cargo run --example staging_operations
+cargo run --example commit_workflows
+cargo run --example error_handling
+```
+
+### Pull Request Guidelines
+
+1. Ensure all tests pass and examples run successfully
+2. Follow conventional commit format: `type(scope): description`
+3. Use types like `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+4. Keep commit messages concise and in present tense
+5. Make sure your changes align with the project's design principles
 
 ## License
 
@@ -325,7 +370,7 @@ MIT License - see LICENSE file for details.
 
 Future planned features:
 - [ ] Commit history and log operations
-- [ ] Diff operations  
+- [ ] Diff operations
 - [ ] Branch operations
 - [ ] Remote operations (clone, push, pull)
 - [ ] Merge and rebase operations

@@ -292,8 +292,7 @@ mod tests {
 
         let result = Repository::init(test_path, false);
         
-        if result.is_ok() {
-            let repo = result.unwrap();
+        if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
             
             // Clean up
@@ -335,8 +334,7 @@ mod tests {
 
         let result = Repository::init(test_path, false);
         
-        if result.is_ok() {
-            let repo = result.unwrap();
+        if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
             
             // Clean up
@@ -355,8 +353,7 @@ mod tests {
 
         let result = Repository::init(test_path, false);
         
-        if result.is_ok() {
-            let repo = result.unwrap();
+        if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
             
             // Clean up
@@ -376,8 +373,7 @@ mod tests {
 
         let result = Repository::init(&test_path, false);
         
-        if result.is_ok() {
-            let repo = result.unwrap();
+        if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(&test_path));
             
             // Clean up

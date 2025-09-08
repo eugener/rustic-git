@@ -259,7 +259,7 @@ fn display_status_changes(before: &rustic_git::GitStatus, after: &rustic_git::Gi
         let after_val = after_counts.get(status).unwrap_or(&0);
         
         if before_val != after_val {
-            println!("      {}: {} → {} ({:+})", status, before_val, after_val, *after_val as i32 - *before_val as i32);
+            println!("      {}: {} → {} ({:+})", status, before_val, after_val, *after_val - *before_val);
         }
     }
 }

@@ -21,7 +21,7 @@
 - Utility functions: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - Command modules: status.rs, add.rs, commit.rs (in src/commands/)
 - Core types: Hash (in src/types.rs)
-- Run `cargo build && cargo test` after code changes
+- Run `cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
 ## Examples

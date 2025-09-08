@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     demonstrate_file_operation_errors(&repo_path)?;
     demonstrate_git_command_errors(&repo_path)?;
     demonstrate_error_recovery_patterns(&repo_path)?;
-    demonstrate_error_propagation_strategies(&base_path)?;
+    demonstrate_error_propagation_strategies(base_path)?;
 
     // Clean up
     println!("Cleaning up error handling examples...");
@@ -405,9 +405,8 @@ fn workflow_with_context(base_path: &str) -> Result<String> {
     
     // Add context to errors
     let repo = Repository::init(&repo_path, false)
-        .map_err(|e| {
+        .inspect_err(|_e| {
             eprintln!("Context: Failed to initialize repository at {}", repo_path);
-            e
         })?;
     
     // Create file with context
@@ -419,16 +418,14 @@ fn workflow_with_context(base_path: &str) -> Result<String> {
     
     // Add with context
     repo.add(&["context_file.txt"])
-        .map_err(|e| {
+        .inspect_err(|_e| {
             eprintln!("Context: Failed to stage context_file.txt");
-            e
         })?;
     
     // Commit with context
     let hash = repo.commit("Context workflow commit")
-        .map_err(|e| {
+        .inspect_err(|_e| {
             eprintln!("Context: Failed to create commit");
-            e
         })?;
     
     // Clean up

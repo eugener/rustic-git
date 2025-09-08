@@ -2,5 +2,10 @@
 name = "rustic-git"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+description = "A Rustic Git - clean type-safe API over git cli"
+homepage = "https://github.com/eugener/rustic-git"
+repository = "https://github.com/eugener/rustic-git"
+readme = "README.md"
 
 [dependencies]

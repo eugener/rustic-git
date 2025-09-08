@@ -36,7 +36,16 @@ impl Repository {
             ));
         }
 
-        let _stdout = git(&["commit", "-m", message], Some(self.repo_path()))?;
+        let _stdout = git(&["commit", "-m", message], Some(self.repo_path()))
+            .map_err(|e| match e {
+                crate::error::GitError::CommandFailed(msg) => {
+                    crate::error::GitError::CommandFailed(format!(
+                        "Commit failed: {}. Ensure git user.name and user.email are configured.", 
+                        msg
+                    ))
+                }
+                other => other,
+            })?;
         
         // Get the commit hash of the just-created commit
         let hash_output = git(&["rev-parse", "HEAD"], Some(self.repo_path()))?;
@@ -86,7 +95,16 @@ impl Repository {
             ));
         }
 
-        let _stdout = git(&["commit", "-m", message, "--author", author], Some(self.repo_path()))?;
+        let _stdout = git(&["commit", "-m", message, "--author", author], Some(self.repo_path()))
+            .map_err(|e| match e {
+                crate::error::GitError::CommandFailed(msg) => {
+                    crate::error::GitError::CommandFailed(format!(
+                        "Commit with author failed: {}. Ensure git user.name and user.email are configured.", 
+                        msg
+                    ))
+                }
+                other => other,
+            })?;
         
         // Get the commit hash of the just-created commit
         let hash_output = git(&["rev-parse", "HEAD"], Some(self.repo_path()))?;
@@ -103,12 +121,21 @@ mod tests {
     use std::path::Path;
 
     fn create_test_repo(path: &str) -> Repository {
+        use crate::utils::git;
+        
         // Clean up if exists
         if Path::new(path).exists() {
             fs::remove_dir_all(path).unwrap();
         }
         
-        Repository::init(path, false).unwrap()
+        let repo = Repository::init(path, false).unwrap();
+        
+        // Configure git user for this repository to enable commits
+        let repo_path = Path::new(path);
+        git(&["config", "user.name", "Test User"], Some(repo_path)).unwrap();
+        git(&["config", "user.email", "test@example.com"], Some(repo_path)).unwrap();
+        
+        repo
     }
 
     fn create_and_stage_file(repo: &Repository, repo_path: &str, filename: &str, content: &str) {
@@ -226,6 +253,28 @@ mod tests {
         // Try to commit with empty author
         let result = repo.commit_with_author("Test commit", "");
         assert!(result.is_err());
+
+        // Clean up
+        fs::remove_dir_all(test_path).unwrap();
+    }
+
+    #[test]
+    fn test_git_config_is_set_in_test_repo() {
+        use crate::utils::git;
+        
+        let test_path = "/tmp/test_git_config_repo";
+        let _repo = create_test_repo(test_path);
+        let repo_path = Path::new(test_path);
+
+        // Verify git user.name is set
+        let name_result = git(&["config", "user.name"], Some(repo_path));
+        assert!(name_result.is_ok(), "git user.name should be configured");
+        assert_eq!(name_result.unwrap().trim(), "Test User");
+
+        // Verify git user.email is set
+        let email_result = git(&["config", "user.email"], Some(repo_path));
+        assert!(email_result.is_ok(), "git user.email should be configured");
+        assert_eq!(email_result.unwrap().trim(), "test@example.com");
 
         // Clean up
         fs::remove_dir_all(test_path).unwrap();

@@ -55,11 +55,9 @@ impl Repository {
         }
 
         // Check if it's a valid git repository by running git status
-        let _stdout = git(&["status", "--porcelain"], Some(path_ref))
-            .map_err(|_| GitError::CommandFailed(format!(
-                "Not a git repository: {}",
-                path_ref.display()
-            )))?;
+        let _stdout = git(&["status", "--porcelain"], Some(path_ref)).map_err(|_| {
+            GitError::CommandFailed(format!("Not a git repository: {}", path_ref.display()))
+        })?;
 
         Ok(Self {
             repo_path: path_ref.to_path_buf(),
@@ -272,11 +270,13 @@ mod tests {
     fn test_open_with_empty_string_path() {
         let result = Repository::open("");
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             GitError::CommandFailed(msg) => {
-                assert!(msg.contains("Path does not exist") || msg.contains("Not a git repository"));
-            },
+                assert!(
+                    msg.contains("Path does not exist") || msg.contains("Not a git repository")
+                );
+            }
             _ => panic!("Expected CommandFailed error"),
         }
     }
@@ -291,10 +291,10 @@ mod tests {
         }
 
         let result = Repository::init(test_path, false);
-        
+
         if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
-            
+
             // Clean up
             fs::remove_dir_all(test_path).unwrap();
         }
@@ -315,7 +315,7 @@ mod tests {
         // Now open with relative path
         let result = Repository::open(test_path);
         assert!(result.is_ok());
-        
+
         let repo = result.unwrap();
         assert_eq!(repo.repo_path(), Path::new(test_path));
 
@@ -333,10 +333,10 @@ mod tests {
         }
 
         let result = Repository::init(test_path, false);
-        
+
         if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
-            
+
             // Clean up
             fs::remove_dir_all(test_path).unwrap();
         }
@@ -352,10 +352,10 @@ mod tests {
         }
 
         let result = Repository::init(test_path, false);
-        
+
         if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(test_path));
-            
+
             // Clean up
             fs::remove_dir_all(test_path).unwrap();
         }
@@ -372,10 +372,10 @@ mod tests {
         }
 
         let result = Repository::init(&test_path, false);
-        
+
         if let Ok(repo) = result {
             assert_eq!(repo.repo_path(), Path::new(&test_path));
-            
+
             // Clean up
             fs::remove_dir_all(&test_path).unwrap();
         }

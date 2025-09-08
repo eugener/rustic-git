@@ -16,16 +16,16 @@ use crate::error::{GitError, Result};
 /// A `Result` containing the stdout as String or a `GitError` if the command fails.
 pub fn git(args: &[&str], working_dir: Option<&Path>) -> Result<String> {
     let output = git_raw(args, working_dir)?;
-    
+
     if !output.status.success() {
         let error_msg = String::from_utf8_lossy(&output.stderr);
         return Err(GitError::CommandFailed(format!(
-            "git {} failed: {}", 
-            args.first().unwrap_or(&"<unknown>"), 
+            "git {} failed: {}",
+            args.first().unwrap_or(&"<unknown>"),
             error_msg
         )));
     }
-    
+
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
@@ -60,11 +60,11 @@ mod tests {
     fn test_git_raw_version_command() {
         let result = git_raw(&["--version"], None);
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.status.success());
         assert!(!output.stdout.is_empty());
-        
+
         let stdout_str = String::from_utf8_lossy(&output.stdout);
         assert!(stdout_str.contains("git version"));
     }
@@ -73,7 +73,7 @@ mod tests {
     fn test_git_version_command() {
         let result = git(&["--version"], None);
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.contains("git version"));
     }
@@ -82,7 +82,7 @@ mod tests {
     fn test_git_raw_invalid_command() {
         let result = git_raw(&["invalid-command-that-does-not-exist"], None);
         assert!(result.is_ok()); // Command executes but fails
-        
+
         let output = result.unwrap();
         assert!(!output.status.success());
         assert!(!output.stderr.is_empty());
@@ -92,11 +92,11 @@ mod tests {
     fn test_git_invalid_command_returns_error() {
         let result = git(&["invalid-command-that-does-not-exist"], None);
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             GitError::CommandFailed(msg) => {
                 assert!(msg.contains("git invalid-command-that-does-not-exist failed"));
-            },
+            }
             _ => panic!("Expected CommandFailed error"),
         }
     }
@@ -106,7 +106,7 @@ mod tests {
         let temp_dir = env::temp_dir();
         let result = git(&["--version"], Some(&temp_dir));
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.contains("git version"));
     }
@@ -116,7 +116,7 @@ mod tests {
         let temp_dir = env::temp_dir();
         let result = git_raw(&["--version"], Some(&temp_dir));
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.status.success());
     }
@@ -126,9 +126,9 @@ mod tests {
         let nonexistent_path = Path::new("/nonexistent/path/that/should/not/exist");
         let result = git(&["--version"], Some(nonexistent_path));
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
-            GitError::IoError(_) => {}, // Expected
+            GitError::IoError(_) => {} // Expected
             _ => panic!("Expected IoError for nonexistent directory"),
         }
     }
@@ -138,9 +138,9 @@ mod tests {
         let nonexistent_path = Path::new("/nonexistent/path/that/should/not/exist");
         let result = git_raw(&["--version"], Some(nonexistent_path));
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
-            GitError::IoError(_) => {}, // Expected
+            GitError::IoError(_) => {} // Expected
             _ => panic!("Expected IoError for nonexistent directory"),
         }
     }
@@ -149,11 +149,11 @@ mod tests {
     fn test_git_empty_args() {
         let result = git(&[], None);
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             GitError::CommandFailed(msg) => {
                 assert!(msg.contains("git <unknown> failed") || msg.contains("usage"));
-            },
+            }
             _ => panic!("Expected CommandFailed error for empty args"),
         }
     }
@@ -162,7 +162,7 @@ mod tests {
     fn test_git_raw_empty_args() {
         let result = git_raw(&[], None);
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(!output.status.success());
     }
@@ -171,7 +171,7 @@ mod tests {
     fn test_git_help_command() {
         let result = git(&["--help"], None);
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.contains("usage:") || output.contains("Git") || output.contains("git"));
     }

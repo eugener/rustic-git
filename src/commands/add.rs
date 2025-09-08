@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use crate::{Repository, Result};
 use crate::utils::git;
+use crate::{Repository, Result};
 
 impl Repository {
     /// Add specific files or paths to the staging area.
@@ -25,7 +25,7 @@ impl Repository {
             .iter()
             .map(|p| p.as_ref().to_string_lossy().to_string())
             .collect();
-        
+
         for path_str in &path_strings {
             args.push(path_str);
         }
@@ -68,7 +68,7 @@ mod tests {
         if Path::new(path).exists() {
             fs::remove_dir_all(path).unwrap();
         }
-        
+
         Repository::init(path, false).unwrap()
     }
 
@@ -92,11 +92,13 @@ mod tests {
 
         // Verify file1.txt is staged by checking status
         let status = repo.status().unwrap();
-        let added_files: Vec<_> = status.files.iter()
+        let added_files: Vec<_> = status
+            .files
+            .iter()
             .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
             .map(|(_, f)| f.as_str())
             .collect();
-        
+
         assert!(added_files.contains(&"file1.txt"));
 
         // Clean up
@@ -119,11 +121,13 @@ mod tests {
 
         // Verify files are staged
         let status = repo.status().unwrap();
-        let added_files: Vec<_> = status.files.iter()
+        let added_files: Vec<_> = status
+            .files
+            .iter()
             .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
             .map(|(_, f)| f.as_str())
             .collect();
-        
+
         assert!(added_files.contains(&"file1.txt"));
         assert!(added_files.contains(&"file2.txt"));
         assert_eq!(added_files.len(), 2);
@@ -149,11 +153,13 @@ mod tests {
 
         // Verify all files are staged
         let status = repo.status().unwrap();
-        let added_files: Vec<_> = status.files.iter()
+        let added_files: Vec<_> = status
+            .files
+            .iter()
             .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
             .map(|(_, f)| f.as_str())
             .collect();
-        
+
         assert!(added_files.contains(&"file1.txt"));
         assert!(added_files.contains(&"file2.txt"));
         assert!(added_files.contains(&"subdir/file3.txt"));

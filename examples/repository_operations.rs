@@ -8,7 +8,7 @@
 //!
 //! Run with: cargo run --example repository_operations
 
-use rustic_git::{Repository, GitError, Result};
+use rustic_git::{GitError, Repository, Result};
 use std::fs;
 use std::path::Path;
 
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     let regular_repo = Repository::init(&regular_repo_path, false)?;
     println!("Regular repository created at: {}", regular_repo_path);
     println!("   Repository path: {:?}", regular_repo.repo_path());
-    
+
     // Verify it's a git repo by checking for .git directory
     if Path::new(&format!("{}/.git", regular_repo_path)).exists() {
         println!("   .git directory found");
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     let bare_repo = Repository::init(&bare_repo_path, true)?;
     println!("Bare repository created at: {}", bare_repo_path);
     println!("   Repository path: {:?}", bare_repo.repo_path());
-    
+
     // Verify bare repo structure (has HEAD, objects, etc. directly)
     if Path::new(&format!("{}/HEAD", bare_repo_path)).exists() {
         println!("   HEAD file found (bare repository structure)");
@@ -63,7 +63,7 @@ fn main() -> Result<()> {
         Ok(opened_repo) => {
             println!("Successfully opened regular repository");
             println!("   Repository path: {:?}", opened_repo.repo_path());
-            
+
             // Test that we can perform operations on the opened repo
             let status = opened_repo.status()?;
             println!("   Repository status: {} files", status.files.len());
@@ -80,11 +80,14 @@ fn main() -> Result<()> {
         Ok(opened_bare) => {
             println!("Successfully opened bare repository");
             println!("   Repository path: {:?}", opened_bare.repo_path());
-            
+
             // Note: status operations might behave differently on bare repos
             match opened_bare.status() {
                 Ok(status) => println!("   Bare repository status: {} files", status.files.len()),
-                Err(e) => println!("   Note: Status check on bare repo failed (expected): {:?}", e),
+                Err(e) => println!(
+                    "   Note: Status check on bare repo failed (expected): {:?}",
+                    e
+                ),
             }
         }
         Err(e) => {
@@ -115,7 +118,7 @@ fn main() -> Result<()> {
     // 6. Try to open a regular file as a repository
     let fake_repo_path = format!("{}/fake.txt", base_path);
     fs::write(&fake_repo_path, "This is not a git repository")?;
-    
+
     println!("Attempting to open regular file as repository...");
     match Repository::open(&fake_repo_path) {
         Ok(_repo) => {
@@ -126,7 +129,7 @@ fn main() -> Result<()> {
             println!("   Error message: {}", msg);
         }
         Err(GitError::IoError(msg)) => {
-            println!("Expected error caught: IoError");  
+            println!("Expected error caught: IoError");
             println!("   Error message: {}", msg);
         }
     }
@@ -136,18 +139,18 @@ fn main() -> Result<()> {
 
     // 7. Compare regular vs bare repository information
     println!("Comparing repository types:");
-    
+
     let regular_path = regular_repo.repo_path();
     let bare_path = bare_repo.repo_path();
-    
+
     println!("   Regular repo path: {:?}", regular_path);
     println!("   Bare repo path: {:?}", bare_path);
-    
+
     // Show directory contents
     if let Ok(entries) = fs::read_dir(regular_path) {
         let mut files: Vec<_> = entries.filter_map(|e| e.ok()).collect();
         files.sort_by_key(|e| e.file_name());
-        
+
         println!("   Regular repo contents:");
         for entry in files {
             if let Some(name) = entry.file_name().to_str() {
@@ -157,11 +160,11 @@ fn main() -> Result<()> {
             }
         }
     }
-    
+
     if let Ok(entries) = fs::read_dir(bare_path) {
         let mut files: Vec<_> = entries.filter_map(|e| e.ok()).collect();
         files.sort_by_key(|e| e.file_name());
-        
+
         println!("   Bare repo contents:");
         for entry in files {
             if let Some(name) = entry.file_name().to_str() {

@@ -8,7 +8,7 @@
 //!
 //! Run with: cargo run --example staging_operations
 
-use rustic_git::{Repository, FileStatus, Result};
+use rustic_git::{FileStatus, Repository, Result};
 use std::fs;
 use std::path::Path;
 
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     println!("Rustic Git - Staging Operations Example\n");
 
     let repo_path = "/tmp/rustic_git_staging_example";
-    
+
     // Clean up any previous run
     if Path::new(repo_path).exists() {
         fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
@@ -25,15 +25,24 @@ fn main() -> Result<()> {
     // Initialize repository and create initial commit
     println!("Setting up repository with initial files...");
     let repo = Repository::init(repo_path, false)?;
-    
+
     // Create initial files
     fs::create_dir_all(format!("{}/src", repo_path))?;
     fs::create_dir_all(format!("{}/docs", repo_path))?;
-    
-    fs::write(format!("{}/README.md", repo_path), "# Staging Demo\nOriginal content")?;
-    fs::write(format!("{}/src/main.rs", repo_path), "fn main() { println!(\"v1\"); }")?;
-    fs::write(format!("{}/src/lib.rs", repo_path), "pub fn version() -> &'static str { \"1.0\" }")?;
-    
+
+    fs::write(
+        format!("{}/README.md", repo_path),
+        "# Staging Demo\nOriginal content",
+    )?;
+    fs::write(
+        format!("{}/src/main.rs", repo_path),
+        "fn main() { println!(\"v1\"); }",
+    )?;
+    fs::write(
+        format!("{}/src/lib.rs", repo_path),
+        "pub fn version() -> &'static str { \"1.0\" }",
+    )?;
+
     // Create initial commit so we can demonstrate staging tracked file changes
     repo.add_all()?;
     let _initial_hash = repo.commit("Initial commit with basic files")?;
@@ -46,11 +55,17 @@ fn main() -> Result<()> {
     fs::write(format!("{}/new_file1.txt", repo_path), "New file 1 content")?;
     fs::write(format!("{}/new_file2.txt", repo_path), "New file 2 content")?;
     fs::write(format!("{}/docs/guide.md", repo_path), "# User Guide")?;
-    
+
     // Modify existing files
-    fs::write(format!("{}/README.md", repo_path), "# Staging Demo\nUpdated content!")?;
-    fs::write(format!("{}/src/main.rs", repo_path), "fn main() { println!(\"v2 - updated!\"); }")?;
-    
+    fs::write(
+        format!("{}/README.md", repo_path),
+        "# Staging Demo\nUpdated content!",
+    )?;
+    fs::write(
+        format!("{}/src/main.rs", repo_path),
+        "fn main() { println!(\"v2 - updated!\"); }",
+    )?;
+
     println!("Created 3 new files and modified 2 existing files");
 
     // Show status before staging
@@ -60,20 +75,28 @@ fn main() -> Result<()> {
 
     // Stage specific files using add()
     println!("\nUsing add() to stage specific files:");
-    
+
     // Stage just the README.md
     repo.add(&["README.md"])?;
     println!("   Staged README.md");
-    
+
     let status_after_readme = repo.status()?;
-    display_status_changes(&status_before, &status_after_readme, "after staging README.md");
+    display_status_changes(
+        &status_before,
+        &status_after_readme,
+        "after staging README.md",
+    );
 
     // Stage multiple specific files
     repo.add(&["new_file1.txt", "src/main.rs"])?;
     println!("   Staged new_file1.txt and src/main.rs");
-    
+
     let status_after_multiple = repo.status()?;
-    display_status_changes(&status_after_readme, &status_after_multiple, "after staging multiple files");
+    display_status_changes(
+        &status_after_readme,
+        &status_after_multiple,
+        "after staging multiple files",
+    );
 
     // Stage using Path objects (alternative syntax)
     use std::path::Path as StdPath;
@@ -81,7 +104,11 @@ fn main() -> Result<()> {
     println!("   Staged docs/guide.md using Path object");
 
     let status_after_path = repo.status()?;
-    display_status_changes(&status_after_multiple, &status_after_path, "after staging with Path object");
+    display_status_changes(
+        &status_after_multiple,
+        &status_after_path,
+        "after staging with Path object",
+    );
 
     println!();
 
@@ -89,11 +116,17 @@ fn main() -> Result<()> {
 
     // Create more files to demonstrate add_all()
     println!("Creating additional files for add_all() demo...");
-    fs::write(format!("{}/config.toml", repo_path), "[package]\nname = \"example\"")?;
+    fs::write(
+        format!("{}/config.toml", repo_path),
+        "[package]\nname = \"example\"",
+    )?;
     fs::write(format!("{}/src/utils.rs", repo_path), "pub fn helper() {}")?;
     fs::create_dir_all(format!("{}/tests", repo_path))?;
-    fs::write(format!("{}/tests/integration.rs", repo_path), "#[test]\nfn test_basic() {}")?;
-    
+    fs::write(
+        format!("{}/tests/integration.rs", repo_path),
+        "#[test]\nfn test_basic() {}",
+    )?;
+
     println!("Created 3 more files");
 
     let status_before_add_all = repo.status()?;
@@ -106,7 +139,11 @@ fn main() -> Result<()> {
     println!("   Staged all changes with add_all()");
 
     let status_after_add_all = repo.status()?;
-    display_status_changes(&status_before_add_all, &status_after_add_all, "after add_all()");
+    display_status_changes(
+        &status_before_add_all,
+        &status_after_add_all,
+        "after add_all()",
+    );
 
     // Create a commit to set up for add_update() demo
     let _commit_hash = repo.commit("Add all new files and modifications")?;
@@ -116,16 +153,28 @@ fn main() -> Result<()> {
 
     // Create new untracked files and modify existing tracked files
     println!("Setting up files for add_update() demonstration...");
-    
+
     // Create new untracked files (these should NOT be staged by add_update)
     fs::write(format!("{}/untracked1.txt", repo_path), "This is untracked")?;
-    fs::write(format!("{}/untracked2.txt", repo_path), "Another untracked file")?;
-    
+    fs::write(
+        format!("{}/untracked2.txt", repo_path),
+        "Another untracked file",
+    )?;
+
     // Modify existing tracked files (these SHOULD be staged by add_update)
-    fs::write(format!("{}/README.md", repo_path), "# Staging Demo\nContent updated again for add_update demo!")?;
-    fs::write(format!("{}/src/lib.rs", repo_path), "pub fn version() -> &'static str { \"2.0\" }")?;
-    fs::write(format!("{}/config.toml", repo_path), "[package]\nname = \"example\"\nversion = \"0.2.0\"")?;
-    
+    fs::write(
+        format!("{}/README.md", repo_path),
+        "# Staging Demo\nContent updated again for add_update demo!",
+    )?;
+    fs::write(
+        format!("{}/src/lib.rs", repo_path),
+        "pub fn version() -> &'static str { \"2.0\" }",
+    )?;
+    fs::write(
+        format!("{}/config.toml", repo_path),
+        "[package]\nname = \"example\"\nversion = \"0.2.0\"",
+    )?;
+
     println!("Created 2 untracked files and modified 3 tracked files");
 
     let status_before_add_update = repo.status()?;
@@ -138,8 +187,12 @@ fn main() -> Result<()> {
     println!("   Used add_update() - should stage modified tracked files only");
 
     let status_after_add_update = repo.status()?;
-    display_status_changes(&status_before_add_update, &status_after_add_update, "after add_update()");
-    
+    display_status_changes(
+        &status_before_add_update,
+        &status_after_add_update,
+        "after add_update()",
+    );
+
     // Verify that untracked files are still untracked
     let remaining_untracked = status_after_add_update.untracked_files();
     if !remaining_untracked.is_empty() {
@@ -175,17 +228,19 @@ fn main() -> Result<()> {
     let final_status = repo.status()?;
     println!("Final repository summary:");
     display_status_breakdown(&final_status);
-    
+
     if final_status.has_changes() {
-        let staged_count = final_status.files.iter()
+        let staged_count = final_status
+            .files
+            .iter()
             .filter(|(status, _)| matches!(status, FileStatus::Added | FileStatus::Modified))
             .count();
         let untracked_count = final_status.untracked_files().len();
-        
+
         println!("\nRepository state:");
         println!("   {} files staged and ready to commit", staged_count);
         println!("   {} untracked files not yet added", untracked_count);
-        
+
         if staged_count > 0 {
             println!("\n   You could now commit with: repo.commit(\"Your message\")?");
         }
@@ -216,7 +271,7 @@ fn display_status_breakdown(status: &rustic_git::GitStatus) {
         let marker = match file_status {
             FileStatus::Modified => "[M]",
             FileStatus::Added => "[A]",
-            FileStatus::Deleted => "[D]", 
+            FileStatus::Deleted => "[D]",
             FileStatus::Renamed => "[R]",
             FileStatus::Copied => "[C]",
             FileStatus::Untracked => "[?]",
@@ -227,39 +282,55 @@ fn display_status_breakdown(status: &rustic_git::GitStatus) {
 }
 
 /// Display changes between two status states
-fn display_status_changes(before: &rustic_git::GitStatus, after: &rustic_git::GitStatus, description: &str) {
+fn display_status_changes(
+    before: &rustic_git::GitStatus,
+    after: &rustic_git::GitStatus,
+    description: &str,
+) {
     println!("\n   Status changes {}:", description);
-    
+
     let before_count = before.files.len();
     let after_count = after.files.len();
-    
+
     if before_count == after_count {
         println!("      Total files unchanged ({} files)", after_count);
     } else {
-        println!("      Total files: {} → {} ({:+})", before_count, after_count, after_count as i32 - before_count as i32);
+        println!(
+            "      Total files: {} → {} ({:+})",
+            before_count,
+            after_count,
+            after_count as i32 - before_count as i32
+        );
     }
-    
+
     // Count status types in both states
     let mut before_counts = std::collections::HashMap::new();
     let mut after_counts = std::collections::HashMap::new();
-    
+
     for (status, _) in &before.files {
         *before_counts.entry(format!("{:?}", status)).or_insert(0) += 1;
     }
-    
+
     for (status, _) in &after.files {
         *after_counts.entry(format!("{:?}", status)).or_insert(0) += 1;
     }
-    
+
     // Show changes for each status type
-    let all_statuses: std::collections::HashSet<_> = before_counts.keys().chain(after_counts.keys()).collect();
-    
+    let all_statuses: std::collections::HashSet<_> =
+        before_counts.keys().chain(after_counts.keys()).collect();
+
     for status in all_statuses {
         let before_val = before_counts.get(status).unwrap_or(&0);
         let after_val = after_counts.get(status).unwrap_or(&0);
-        
+
         if before_val != after_val {
-            println!("      {}: {} → {} ({:+})", status, before_val, after_val, *after_val - *before_val);
+            println!(
+                "      {}: {} → {} ({:+})",
+                status,
+                before_val,
+                after_val,
+                *after_val - *before_val
+            );
         }
     }
 }

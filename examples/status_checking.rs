@@ -8,7 +8,7 @@
 //!
 //! Run with: cargo run --example status_checking
 
-use rustic_git::{Repository, FileStatus, Result};
+use rustic_git::{FileStatus, Repository, Result};
 use std::fs;
 use std::path::Path;
 
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     println!("Rustic Git - Status Checking Example\n");
 
     let repo_path = "/tmp/rustic_git_status_example";
-    
+
     // Clean up any previous run
     if Path::new(repo_path).exists() {
         fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
@@ -25,9 +25,9 @@ fn main() -> Result<()> {
     // Initialize repository
     println!("Setting up repository for status demonstration...");
     let repo = Repository::init(repo_path, false)?;
-    
+
     println!("=== Clean Repository Status ===\n");
-    
+
     // Check initial status (should be clean)
     let status = repo.status()?;
     println!("Initial repository status:");
@@ -38,14 +38,23 @@ fn main() -> Result<()> {
 
     // Create various types of files to demonstrate different statuses
     println!("Creating test files...");
-    
+
     // Create some files that will be untracked
-    fs::write(format!("{}/untracked1.txt", repo_path), "This file is untracked")?;
-    fs::write(format!("{}/untracked2.txt", repo_path), "Another untracked file")?;
-    
+    fs::write(
+        format!("{}/untracked1.txt", repo_path),
+        "This file is untracked",
+    )?;
+    fs::write(
+        format!("{}/untracked2.txt", repo_path),
+        "Another untracked file",
+    )?;
+
     // Create a .gitignore to demonstrate ignored files
-    fs::write(format!("{}/.gitignore", repo_path), "*.log\n*.tmp\n/temp/\n")?;
-    
+    fs::write(
+        format!("{}/.gitignore", repo_path),
+        "*.log\n*.tmp\n/temp/\n",
+    )?;
+
     // Create files that will be ignored
     fs::write(format!("{}/debug.log", repo_path), "Log file content")?;
     fs::write(format!("{}/cache.tmp", repo_path), "Temporary file")?;
@@ -90,8 +99,14 @@ fn main() -> Result<()> {
     println!("=== Modifying Files to Show 'Modified' Status ===\n");
 
     // Modify existing tracked files
-    fs::write(format!("{}/untracked1.txt", repo_path), "This file has been MODIFIED!")?;
-    fs::write(format!("{}/.gitignore", repo_path), "*.log\n*.tmp\n/temp/\n# Added comment\n")?;
+    fs::write(
+        format!("{}/untracked1.txt", repo_path),
+        "This file has been MODIFIED!",
+    )?;
+    fs::write(
+        format!("{}/.gitignore", repo_path),
+        "*.log\n*.tmp\n/temp/\n# Added comment\n",
+    )?;
     println!("Modified untracked1.txt and .gitignore");
 
     let status_modified = repo.status()?;
@@ -112,12 +127,12 @@ fn main() -> Result<()> {
 
     // Demonstrate different query methods
     println!("\nUsing different status query methods:");
-    
+
     println!("   All files ({} total):", status_mixed.files.len());
     for (file_status, filename) in &status_mixed.files {
         println!("      {:?}: {}", file_status, filename);
     }
-    
+
     // Query by specific status
     let modified_files = status_mixed.modified_files();
     if !modified_files.is_empty() {
@@ -126,7 +141,7 @@ fn main() -> Result<()> {
             println!("      - {}", filename);
         }
     }
-    
+
     let untracked_files = status_mixed.untracked_files();
     if !untracked_files.is_empty() {
         println!("\n   Untracked files ({}):", untracked_files.len());
@@ -154,20 +169,23 @@ fn main() -> Result<()> {
     // Count files by status
     let mut status_counts = std::collections::HashMap::new();
     for (file_status, _) in &status_mixed.files {
-        *status_counts.entry(format!("{:?}", file_status)).or_insert(0) += 1;
+        *status_counts
+            .entry(format!("{:?}", file_status))
+            .or_insert(0) += 1;
     }
-    
+
     println!("   Files by status:");
     for (status, count) in &status_counts {
         println!("      {}: {} files", status, count);
     }
 
     // Filter for specific patterns
-    let txt_files: Vec<_> = status_mixed.files
+    let txt_files: Vec<_> = status_mixed
+        .files
         .iter()
         .filter(|(_, filename)| filename.ends_with(".txt"))
         .collect();
-    
+
     if !txt_files.is_empty() {
         println!("\n   .txt files:");
         for (file_status, filename) in txt_files {
@@ -183,22 +201,30 @@ fn main() -> Result<()> {
     println!("   Total files tracked: {}", status_mixed.files.len());
     println!("   Is clean: {}", status_mixed.is_clean());
     println!("   Has changes: {}", status_mixed.has_changes());
-    
+
     if status_mixed.has_changes() {
         println!("   Repository needs attention!");
-        
+
         if !status_mixed.modified_files().is_empty() {
-            println!("      - {} files need to be staged", status_mixed.modified_files().len());
+            println!(
+                "      - {} files need to be staged",
+                status_mixed.modified_files().len()
+            );
         }
-        
+
         if !status_mixed.untracked_files().is_empty() {
-            println!("      - {} untracked files to consider", status_mixed.untracked_files().len());
+            println!(
+                "      - {} untracked files to consider",
+                status_mixed.untracked_files().len()
+            );
         }
-        
-        let staged_count = status_mixed.files.iter()
+
+        let staged_count = status_mixed
+            .files
+            .iter()
             .filter(|(status, _)| matches!(status, FileStatus::Added))
             .count();
-        
+
         if staged_count > 0 {
             println!("      - {} files ready to commit", staged_count);
         }
@@ -230,7 +256,7 @@ fn display_detailed_status(status: &rustic_git::GitStatus) {
         for (file_status, filename) in &status.files {
             let marker = match file_status {
                 FileStatus::Modified => "[M]",
-                FileStatus::Added => "[A]", 
+                FileStatus::Added => "[A]",
                 FileStatus::Deleted => "[D]",
                 FileStatus::Renamed => "[R]",
                 FileStatus::Copied => "[C]",

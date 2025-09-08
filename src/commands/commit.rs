@@ -1,5 +1,5 @@
-use crate::{Repository, Result, Hash};
 use crate::utils::git;
+use crate::{Hash, Repository, Result};
 
 impl Repository {
     /// Create a commit with the given message.
@@ -16,41 +16,40 @@ impl Repository {
 
         if message.trim().is_empty() {
             return Err(crate::error::GitError::CommandFailed(
-                "Commit message cannot be empty".to_string()
+                "Commit message cannot be empty".to_string(),
             ));
         }
 
         // Check if there are staged changes
         let status = self.status()?;
         let has_staged = status.files.iter().any(|(file_status, _)| {
-            matches!(file_status, 
-                crate::FileStatus::Added | 
-                crate::FileStatus::Modified | 
-                crate::FileStatus::Deleted
+            matches!(
+                file_status,
+                crate::FileStatus::Added | crate::FileStatus::Modified | crate::FileStatus::Deleted
             )
         });
 
         if !has_staged {
             return Err(crate::error::GitError::CommandFailed(
-                "No changes staged for commit".to_string()
+                "No changes staged for commit".to_string(),
             ));
         }
 
-        let _stdout = git(&["commit", "-m", message], Some(self.repo_path()))
-            .map_err(|e| match e {
+        let _stdout =
+            git(&["commit", "-m", message], Some(self.repo_path())).map_err(|e| match e {
                 crate::error::GitError::CommandFailed(msg) => {
                     crate::error::GitError::CommandFailed(format!(
-                        "Commit failed: {}. Ensure git user.name and user.email are configured.", 
+                        "Commit failed: {}. Ensure git user.name and user.email are configured.",
                         msg
                     ))
                 }
                 other => other,
             })?;
-        
+
         // Get the commit hash of the just-created commit
         let hash_output = git(&["rev-parse", "HEAD"], Some(self.repo_path()))?;
         let commit_hash = hash_output.trim().to_string();
-        
+
         Ok(Hash(commit_hash))
     }
 
@@ -69,29 +68,28 @@ impl Repository {
 
         if message.trim().is_empty() {
             return Err(crate::error::GitError::CommandFailed(
-                "Commit message cannot be empty".to_string()
+                "Commit message cannot be empty".to_string(),
             ));
         }
 
         if author.trim().is_empty() {
             return Err(crate::error::GitError::CommandFailed(
-                "Author cannot be empty".to_string()
+                "Author cannot be empty".to_string(),
             ));
         }
 
         // Check if there are staged changes
         let status = self.status()?;
         let has_staged = status.files.iter().any(|(file_status, _)| {
-            matches!(file_status, 
-                crate::FileStatus::Added | 
-                crate::FileStatus::Modified | 
-                crate::FileStatus::Deleted
+            matches!(
+                file_status,
+                crate::FileStatus::Added | crate::FileStatus::Modified | crate::FileStatus::Deleted
             )
         });
 
         if !has_staged {
             return Err(crate::error::GitError::CommandFailed(
-                "No changes staged for commit".to_string()
+                "No changes staged for commit".to_string(),
             ));
         }
 
@@ -105,11 +103,11 @@ impl Repository {
                 }
                 other => other,
             })?;
-        
+
         // Get the commit hash of the just-created commit
         let hash_output = git(&["rev-parse", "HEAD"], Some(self.repo_path()))?;
         let commit_hash = hash_output.trim().to_string();
-        
+
         Ok(Hash(commit_hash))
     }
 }
@@ -122,19 +120,23 @@ mod tests {
 
     fn create_test_repo(path: &str) -> Repository {
         use crate::utils::git;
-        
+
         // Clean up if exists
         if Path::new(path).exists() {
             fs::remove_dir_all(path).unwrap();
         }
-        
+
         let repo = Repository::init(path, false).unwrap();
-        
+
         // Configure git user for this repository to enable commits
         let repo_path = Path::new(path);
         git(&["config", "user.name", "Test User"], Some(repo_path)).unwrap();
-        git(&["config", "user.email", "test@example.com"], Some(repo_path)).unwrap();
-        
+        git(
+            &["config", "user.email", "test@example.com"],
+            Some(repo_path),
+        )
+        .unwrap();
+
         repo
     }
 
@@ -155,7 +157,7 @@ mod tests {
         // Commit the changes
         let result = repo.commit("Initial commit");
         assert!(result.is_ok());
-        
+
         let hash = result.unwrap();
         assert!(!hash.as_str().is_empty());
         assert_eq!(hash.short().len(), 7);
@@ -179,7 +181,7 @@ mod tests {
         // Commit with author
         let result = repo.commit_with_author("Test commit", "Test User <test@example.com>");
         assert!(result.is_ok());
-        
+
         let hash = result.unwrap();
         assert!(!hash.as_str().is_empty());
 
@@ -198,7 +200,7 @@ mod tests {
         // Try to commit with empty message
         let result = repo.commit("");
         assert!(result.is_err());
-        
+
         if let Err(crate::error::GitError::CommandFailed(msg)) = result {
             assert!(msg.contains("empty"));
         } else {
@@ -217,7 +219,7 @@ mod tests {
         // Try to commit without staging anything
         let result = repo.commit("Test commit");
         assert!(result.is_err());
-        
+
         if let Err(crate::error::GitError::CommandFailed(msg)) = result {
             assert!(msg.contains("No changes staged"));
         } else {
@@ -261,7 +263,7 @@ mod tests {
     #[test]
     fn test_git_config_is_set_in_test_repo() {
         use crate::utils::git;
-        
+
         let test_path = "/tmp/test_git_config_repo";
         let _repo = create_test_repo(test_path);
         let repo_path = Path::new(test_path);

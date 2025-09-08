@@ -7,7 +7,7 @@ impl Hash {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-    
+
     /// Get the short version of the hash (first 7 characters).
     pub fn short(&self) -> &str {
         if self.0.len() >= 7 {
@@ -113,7 +113,7 @@ mod tests {
         let hash1 = Hash("abc123def456".to_string());
         let hash2 = Hash("abc123def456".to_string());
         let hash3 = Hash("different".to_string());
-        
+
         assert_eq!(hash1, hash2);
         assert_ne!(hash1, hash3);
     }
@@ -122,10 +122,10 @@ mod tests {
     fn test_hash_from_conversions_edge_cases() {
         let empty_string: Hash = "".into();
         assert_eq!(empty_string.0, "");
-        
+
         let empty_owned: Hash = String::new().into();
         assert_eq!(empty_owned.0, "");
-        
+
         let unicode: Hash = "🚀commit".into();
         assert_eq!(unicode.0, "🚀commit");
     }

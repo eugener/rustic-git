@@ -3,8 +3,12 @@ name: Rust
 on:
   push:
     branches: [ "master" ]
+    paths-ignore:
+      - '**.md' # Ignores all Markdown files
   pull_request:
     branches: [ "master" ]
+    paths-ignore:
+      - '**.md' # Ignores all Markdown files
 
 env:
   CARGO_TERM_COLOR: always

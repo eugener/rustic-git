@@ -260,6 +260,43 @@ fn main() -> rustic_git::Result<()> {
 }
 ```
 
+## Examples
+
+The `examples/` directory contains comprehensive demonstrations of library functionality:
+
+### Running Examples
+
+```bash
+# Complete workflow from init to commit
+cargo run --example basic_usage
+
+# Repository lifecycle operations
+cargo run --example repository_operations
+
+# Status checking and file state filtering  
+cargo run --example status_checking
+
+# Staging operations (add, add_all, add_update)
+cargo run --example staging_operations
+
+# Commit workflows and Hash type usage
+cargo run --example commit_workflows
+
+# Error handling patterns and recovery strategies
+cargo run --example error_handling
+```
+
+### Example Files
+
+- **`basic_usage.rs`** - Demonstrates the fundamental rustic-git workflow: initialize a repository, create files, check status, stage changes, and create commits
+- **`repository_operations.rs`** - Shows repository lifecycle operations including initializing regular and bare repositories, opening existing repos, and handling errors
+- **`status_checking.rs`** - Comprehensive demonstration of GitStatus and FileStatus usage with all query methods and filtering capabilities
+- **`staging_operations.rs`** - Shows all staging methods (add, add_all, add_update) with before/after status comparisons
+- **`commit_workflows.rs`** - Demonstrates commit operations and Hash type methods, including custom authors and hash management
+- **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
+
+All examples use temporary directories in `/tmp/` and include automatic cleanup for safe execution.
+
 ## Testing
 
 Run the test suite:

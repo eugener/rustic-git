@@ -1,7 +1,7 @@
 use crate::{Repository, Result};
 use crate::utils::git;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FileStatus {
     Modified,
     Added,

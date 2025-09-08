@@ -362,9 +362,6 @@ cargo run --example error_handling
 4. Keep commit messages concise and in present tense
 5. Make sure your changes align with the project's design principles
 
-## License
-
-MIT License - see LICENSE file for details.
 
 ## Roadmap
 

@@ -1,5 +1,5 @@
 /// Represents a Git object hash (commit, tree, blob, etc.).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hash(pub String);
 
 impl Hash {

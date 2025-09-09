@@ -11,13 +11,15 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ Repository initialization and opening
 - ✅ **Enhanced file status checking** with separate staged/unstaged tracking
 - ✅ **Precise Git state representation** using IndexStatus and WorktreeStatus enums
-- ✅ File staging (add files, add all, add updates) 
+- ✅ File staging (add files, add all, add updates)
 - ✅ Commit creation with hash return
+- ✅ **Complete branch operations** with type-safe Branch API
+- ✅ **Branch management** (create, delete, checkout, list)
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
-- ✅ **Immutable collections** (Box<[FileEntry]>) for memory efficiency
+- ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (80+ tests)
+- ✅ Comprehensive test coverage (90+ tests)
 
 ## Installation
 
@@ -47,7 +49,7 @@ fn main() -> Result<()> {
         let staged_count = status.staged_files().count();
         let unstaged_count = status.unstaged_files().count();
         let untracked_count = status.untracked_entries().count();
-        
+
         println!("Repository status:");
         println!("  Staged: {} files", staged_count);
         println!("  Unstaged: {} files", unstaged_count);
@@ -68,6 +70,14 @@ fn main() -> Result<()> {
     // Create a commit
     let hash = repo.commit("Add new features")?;
     println!("Created commit: {}", hash.short());
+
+    // Branch operations
+    let branches = repo.branches()?;
+    println!("Current branch: {:?}", repo.current_branch()?.map(|b| b.name));
+
+    // Create and switch to new branch
+    let feature_branch = repo.checkout_new("feature/new-api", None)?;
+    println!("Created and switched to: {}", feature_branch.name);
 
     Ok(())
 }
@@ -128,8 +138,8 @@ let modified_in_worktree: Vec<_> = status
 
 // Work with all file entries directly
 for entry in status.entries() {
-    println!("[{}][{}] {}", 
-        entry.index_status.to_char(), 
+    println!("[{}][{}] {}",
+        entry.index_status.to_char(),
         entry.worktree_status.to_char(),
         entry.path.display()
     );
@@ -247,6 +257,165 @@ let hash = repo.commit_with_author(
 )?;
 ```
 
+### Branch Operations
+
+#### `Repository::branches() -> Result<BranchList>`
+
+List all branches in the repository.
+
+```rust
+let branches = repo.branches()?;
+
+// Check total count
+println!("Total branches: {}", branches.len());
+println!("Local branches: {}", branches.local_count());
+println!("Remote branches: {}", branches.remote_count());
+
+// Iterate over all branches
+for branch in branches.iter() {
+    let marker = if branch.is_current { "*" } else { " " };
+    println!("  {}{} ({})", marker, branch.name, branch.commit_hash.short());
+}
+
+// Filter by type
+let local_branches: Vec<_> = branches.local().collect();
+let remote_branches: Vec<_> = branches.remote().collect();
+```
+
+#### `Repository::current_branch() -> Result<Option<Branch>>`
+
+Get the currently checked out branch.
+
+```rust
+if let Some(current) = repo.current_branch()? {
+    println!("On branch: {}", current.name);
+    println!("Last commit: {}", current.commit_hash.short());
+    if let Some(upstream) = &current.upstream {
+        println!("Tracking: {}", upstream);
+    }
+}
+```
+
+#### `Repository::create_branch(name, start_point) -> Result<Branch>`
+
+Create a new branch.
+
+```rust
+// Create branch from current HEAD
+let branch = repo.create_branch("feature/new-api", None)?;
+
+// Create branch from specific commit/branch
+let branch = repo.create_branch("hotfix/bug-123", Some("main"))?;
+let branch = repo.create_branch("release/v1.0", Some("develop"))?;
+```
+
+#### `Repository::checkout(branch) -> Result<()>`
+
+Switch to an existing branch.
+
+```rust
+let branches = repo.branches()?;
+if let Some(branch) = branches.find("develop") {
+    repo.checkout(&branch)?;
+    println!("Switched to: {}", branch.name);
+}
+```
+
+#### `Repository::checkout_new(name, start_point) -> Result<Branch>`
+
+Create a new branch and switch to it immediately.
+
+```rust
+// Create and checkout new branch from current HEAD
+let branch = repo.checkout_new("feature/auth", None)?;
+
+// Create and checkout from specific starting point
+let branch = repo.checkout_new("feature/api", Some("develop"))?;
+println!("Created and switched to: {}", branch.name);
+```
+
+#### `Repository::delete_branch(branch, force) -> Result<()>`
+
+Delete a branch.
+
+```rust
+let branches = repo.branches()?;
+if let Some(branch) = branches.find("old-feature") {
+    // Safe delete (fails if unmerged)
+    repo.delete_branch(&branch, false)?;
+
+    // Force delete
+    // repo.delete_branch(&branch, true)?;
+}
+```
+
+#### Branch Types
+
+The branch API uses structured types for type safety:
+
+```rust
+// Branch represents a single branch
+pub struct Branch {
+    pub name: String,
+    pub branch_type: BranchType,
+    pub is_current: bool,
+    pub commit_hash: Hash,
+    pub upstream: Option<String>,
+}
+
+// Branch type enumeration
+pub enum BranchType {
+    Local,           // Local branch
+    RemoteTracking,  // Remote-tracking branch
+}
+
+// BranchList contains all branches with efficient methods
+pub struct BranchList {
+    // Methods:
+    // - iter() -> iterator over all branches
+    // - local() -> iterator over local branches
+    // - remote() -> iterator over remote branches
+    // - current() -> get current branch
+    // - find(name) -> find branch by exact name
+    // - find_by_short_name(name) -> find by short name
+    // - len(), is_empty() -> collection info
+}
+```
+
+#### Branch Search and Filtering
+
+```rust
+let branches = repo.branches()?;
+
+// Find specific branches
+if let Some(main) = branches.find("main") {
+    println!("Found main branch: {}", main.commit_hash.short());
+}
+
+// Find by short name (useful for remote branches)
+if let Some(feature) = branches.find_by_short_name("feature") {
+    println!("Found feature branch: {}", feature.name);
+}
+
+// Filter by type
+println!("Local branches:");
+for branch in branches.local() {
+    println!("  - {}", branch.name);
+}
+
+if branches.remote_count() > 0 {
+    println!("Remote branches:");
+    for branch in branches.remote() {
+        println!("  - {}", branch.name);
+    }
+}
+
+// Get current branch
+if let Some(current) = branches.current() {
+    println!("Currently on: {}", current.name);
+}
+```
+
 ### Hash Type
 
 The `Hash` type represents Git object hashes (commits, trees, blobs, etc.).
@@ -297,10 +466,10 @@ fn main() -> rustic_git::Result<()> {
     let status = repo.status()?;
     let untracked_count = status.untracked_entries().count();
     println!("Found {} untracked files", untracked_count);
-    
+
     // Display detailed status
     for entry in status.entries() {
-        println!("[{}][{}] {}", 
+        println!("[{}][{}] {}",
             entry.index_status.to_char(),
             entry.worktree_status.to_char(),
             entry.path.display()
@@ -314,7 +483,7 @@ fn main() -> rustic_git::Result<()> {
     let status = repo.status()?;
     let staged_files: Vec<_> = status.staged_files().collect();
     println!("Staged {} files", staged_files.len());
-    
+
     // Show specifically added files
     let added_files: Vec<_> = status
         .files_with_index_status(IndexStatus::Added)
@@ -325,10 +494,41 @@ fn main() -> rustic_git::Result<()> {
     let hash = repo.commit("Initial commit with project structure")?;
     println!("Created commit: {}", hash.short());
 
+    // Branch operations workflow
+    let branches = repo.branches()?;
+    println!("Current branch: {:?}", repo.current_branch()?.map(|b| b.name));
+
+    // Create a feature branch
+    let feature_branch = repo.checkout_new("feature/user-auth", None)?;
+    println!("Created and switched to: {}", feature_branch.name);
+
+    // Make changes on the feature branch
+    fs::write("./my-project/src/auth.rs", "pub fn authenticate() { /* TODO */ }")?;
+    repo.add(&["src/auth.rs"])?;
+    let feature_commit = repo.commit("Add authentication module")?;
+    println!("Feature commit: {}", feature_commit.short());
+
+    // Switch back to main and create another branch
+    if let Some(main_branch) = branches.find("main") {
+        repo.checkout(&main_branch)?;
+        println!("Switched back to main");
+    }
+
+    let doc_branch = repo.create_branch("docs/api", None)?;
+    println!("Created documentation branch: {}", doc_branch.name);
+
+    // List all branches
+    let final_branches = repo.branches()?;
+    println!("\nFinal branch summary:");
+    for branch in final_branches.iter() {
+        let marker = if branch.is_current { "*" } else { " " };
+        println!("  {}{} ({})", marker, branch.name, branch.commit_hash.short());
+    }
+
     // Verify clean state
     let status = repo.status()?;
     assert!(status.is_clean());
-    println!("Repository is now clean!");
+    println!("Repository is clean!");
 
     Ok(())
 }
@@ -356,6 +556,9 @@ cargo run --example staging_operations
 # Commit workflows and Hash type usage
 cargo run --example commit_workflows
 
+# Branch operations (create, delete, checkout, list)
+cargo run --example branch_operations
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -367,6 +570,7 @@ cargo run --example error_handling
 - **`status_checking.rs`** - Comprehensive demonstration of GitStatus and FileStatus usage with all query methods and filtering capabilities
 - **`staging_operations.rs`** - Shows all staging methods (add, add_all, add_update) with before/after status comparisons
 - **`commit_workflows.rs`** - Demonstrates commit operations and Hash type methods, including custom authors and hash management
+- **`branch_operations.rs`** - Complete branch management demonstration: create, checkout, delete branches, and BranchList filtering
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use temporary directories in `/tmp/` and include automatic cleanup for safe execution.
@@ -425,6 +629,7 @@ cargo run --example repository_operations
 cargo run --example status_checking
 cargo run --example staging_operations
 cargo run --example commit_workflows
+cargo run --example branch_operations
 cargo run --example error_handling
 ```
 
@@ -442,7 +647,6 @@ cargo run --example error_handling
 Future planned features:
 - [ ] Commit history and log operations
 - [ ] Diff operations
-- [ ] Branch operations
 - [ ] Remote operations (clone, push, pull)
 - [ ] Merge and rebase operations
 - [ ] Tag operations
@@ -450,4 +654,4 @@ Future planned features:
 
 ## Version
 
-Current version: 0.1.0 - Basic git workflow (init, status, add, commit)
+Current version: 0.1.0 - Basic git workflow with branch operations (init, status, add, commit, branch)

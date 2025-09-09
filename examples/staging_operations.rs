@@ -8,7 +8,7 @@
 //!
 //! Run with: cargo run --example staging_operations
 
-use rustic_git::{FileStatus, Repository, Result};
+use rustic_git::{IndexStatus, Repository, Result, WorktreeStatus};
 use std::fs;
 use std::path::Path;
 
@@ -194,11 +194,11 @@ fn main() -> Result<()> {
     );
 
     // Verify that untracked files are still untracked
-    let remaining_untracked = status_after_add_update.untracked_files();
+    let remaining_untracked: Vec<_> = status_after_add_update.untracked_entries().collect();
     if !remaining_untracked.is_empty() {
         println!("   Untracked files remain untracked (as expected):");
-        for filename in remaining_untracked {
-            println!("      - {}", filename);
+        for entry in remaining_untracked {
+            println!("      - {}", entry.path.display());
         }
     }
 
@@ -230,12 +230,8 @@ fn main() -> Result<()> {
     display_status_breakdown(&final_status);
 
     if final_status.has_changes() {
-        let staged_count = final_status
-            .files
-            .iter()
-            .filter(|(status, _)| matches!(status, FileStatus::Added | FileStatus::Modified))
-            .count();
-        let untracked_count = final_status.untracked_files().len();
+        let staged_count = final_status.staged_files().count();
+        let untracked_count = final_status.untracked_entries().count();
 
         println!("\nRepository state:");
         println!("   {} files staged and ready to commit", staged_count);
@@ -261,23 +257,41 @@ fn display_status_breakdown(status: &rustic_git::GitStatus) {
         return;
     }
 
-    let mut counts = std::collections::HashMap::new();
-    for (file_status, _) in &status.files {
-        *counts.entry(file_status).or_insert(0) += 1;
+    let mut index_counts = std::collections::HashMap::new();
+    let mut worktree_counts = std::collections::HashMap::new();
+
+    for entry in &status.entries {
+        if !matches!(entry.index_status, IndexStatus::Clean) {
+            *index_counts.entry(&entry.index_status).or_insert(0) += 1;
+        }
+        if !matches!(entry.worktree_status, WorktreeStatus::Clean) {
+            *worktree_counts.entry(&entry.worktree_status).or_insert(0) += 1;
+        }
     }
 
-    println!("   Files by status:");
-    for (file_status, count) in &counts {
-        let marker = match file_status {
-            FileStatus::Modified => "[M]",
-            FileStatus::Added => "[A]",
-            FileStatus::Deleted => "[D]",
-            FileStatus::Renamed => "[R]",
-            FileStatus::Copied => "[C]",
-            FileStatus::Untracked => "[?]",
-            FileStatus::Ignored => "[I]",
+    println!("   Index status:");
+    for (index_status, count) in &index_counts {
+        let marker = match index_status {
+            IndexStatus::Modified => "[M]",
+            IndexStatus::Added => "[A]",
+            IndexStatus::Deleted => "[D]",
+            IndexStatus::Renamed => "[R]",
+            IndexStatus::Copied => "[C]",
+            IndexStatus::Clean => "[ ]",
         };
-        println!("      {} {:?}: {} files", marker, file_status, count);
+        println!("      {} {:?}: {} files", marker, index_status, count);
+    }
+
+    println!("   Worktree status:");
+    for (worktree_status, count) in &worktree_counts {
+        let marker = match worktree_status {
+            WorktreeStatus::Modified => "[M]",
+            WorktreeStatus::Deleted => "[D]",
+            WorktreeStatus::Untracked => "[?]",
+            WorktreeStatus::Ignored => "[I]",
+            WorktreeStatus::Clean => "[ ]",
+        };
+        println!("      {} {:?}: {} files", marker, worktree_status, count);
     }
 }
 
@@ -289,8 +303,8 @@ fn display_status_changes(
 ) {
     println!("\n   Status changes {}:", description);
 
-    let before_count = before.files.len();
-    let after_count = after.files.len();
+    let before_count = before.entries.len();
+    let after_count = after.entries.len();
 
     if before_count == after_count {
         println!("      Total files unchanged ({} files)", after_count);
@@ -303,34 +317,27 @@ fn display_status_changes(
         );
     }
 
-    // Count status types in both states
-    let mut before_counts = std::collections::HashMap::new();
-    let mut after_counts = std::collections::HashMap::new();
+    // Show status summary
+    let before_staged = before.staged_files().count();
+    let after_staged = after.staged_files().count();
+    let before_untracked = before.untracked_entries().count();
+    let after_untracked = after.untracked_entries().count();
 
-    for (status, _) in &before.files {
-        *before_counts.entry(format!("{:?}", status)).or_insert(0) += 1;
+    if before_staged != after_staged {
+        println!(
+            "      Staged files: {} → {} ({:+})",
+            before_staged,
+            after_staged,
+            after_staged as i32 - before_staged as i32
+        );
     }
 
-    for (status, _) in &after.files {
-        *after_counts.entry(format!("{:?}", status)).or_insert(0) += 1;
-    }
-
-    // Show changes for each status type
-    let all_statuses: std::collections::HashSet<_> =
-        before_counts.keys().chain(after_counts.keys()).collect();
-
-    for status in all_statuses {
-        let before_val = before_counts.get(status).unwrap_or(&0);
-        let after_val = after_counts.get(status).unwrap_or(&0);
-
-        if before_val != after_val {
-            println!(
-                "      {}: {} → {} ({:+})",
-                status,
-                before_val,
-                after_val,
-                *after_val - *before_val
-            );
-        }
+    if before_untracked != after_untracked {
+        println!(
+            "      Untracked files: {} → {} ({:+})",
+            before_untracked,
+            after_untracked,
+            after_untracked as i32 - before_untracked as i32
+        );
     }
 }

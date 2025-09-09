@@ -93,10 +93,8 @@ mod tests {
         // Verify file1.txt is staged by checking status
         let status = repo.status().unwrap();
         let added_files: Vec<_> = status
-            .files
-            .iter()
-            .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
-            .map(|(_, f)| f.as_str())
+            .staged_files()
+            .map(|entry| entry.path.to_str().unwrap())
             .collect();
 
         assert!(added_files.contains(&"file1.txt"));
@@ -122,10 +120,8 @@ mod tests {
         // Verify files are staged
         let status = repo.status().unwrap();
         let added_files: Vec<_> = status
-            .files
-            .iter()
-            .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
-            .map(|(_, f)| f.as_str())
+            .staged_files()
+            .map(|entry| entry.path.to_str().unwrap())
             .collect();
 
         assert!(added_files.contains(&"file1.txt"));
@@ -154,10 +150,8 @@ mod tests {
         // Verify all files are staged
         let status = repo.status().unwrap();
         let added_files: Vec<_> = status
-            .files
-            .iter()
-            .filter(|(s, _)| matches!(s, crate::FileStatus::Added))
-            .map(|(_, f)| f.as_str())
+            .staged_files()
+            .map(|entry| entry.path.to_str().unwrap())
             .collect();
 
         assert!(added_files.contains(&"file1.txt"));

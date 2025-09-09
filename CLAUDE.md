@@ -19,13 +19,18 @@
 
 ## Implementation
 - Available methods: Repository::init(path, bare), Repository::open(path), Repository::status(), Repository::add(paths), Repository::add_all(), Repository::add_update(), Repository::commit(message), Repository::commit_with_author(message, author)
-- Status functionality: GitStatus with FileStatus enum, files as Box<[(FileStatus, String)]>
+- **Status functionality**: Enhanced GitStatus API with separate staged/unstaged file tracking
+  - GitStatus with entries as Box<[FileEntry]> for immutable, efficient storage
+  - FileEntry contains PathBuf, IndexStatus, and WorktreeStatus for precise Git state representation
+  - IndexStatus enum: Clean, Modified, Added, Deleted, Renamed, Copied (with const from_char/to_char methods)
+  - WorktreeStatus enum: Clean, Modified, Deleted, Untracked, Ignored (with const from_char/to_char methods)
+  - API methods: staged_files(), unstaged_files(), untracked_entries(), files_with_index_status(), files_with_worktree_status()
 - Add functionality: Stage specific files, all changes, or tracked file updates
 - Commit functionality: Create commits and return Hash of created commit
 - Hash type: Universal git object hash representation with short() and Display methods
 - Utility functions: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - Command modules: status.rs, add.rs, commit.rs (in src/commands/)
-- Core types: Hash (in src/types.rs)
+- Core types: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs)
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -34,7 +39,7 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 
 - **basic_usage.rs**: Complete workflow from init to commit - demonstrates fundamental rustic-git usage
 - **repository_operations.rs**: Repository lifecycle - init regular/bare repos, open existing repos, error handling
-- **status_checking.rs**: GitStatus and FileStatus usage - all status query methods and file state filtering
+- **status_checking.rs**: Enhanced GitStatus API usage - staged/unstaged file queries, IndexStatus/WorktreeStatus filtering, comprehensive status analysis
 - **staging_operations.rs**: Staging operations - add(), add_all(), add_update() with before/after comparisons
 - **commit_workflows.rs**: Commit operations and Hash type - commit(), commit_with_author(), Hash methods
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies

@@ -324,7 +324,7 @@ See CHANGELOG.md for version history.
     } else {
         println!(
             "Repository has {} uncommitted changes",
-            final_status.files.len()
+            final_status.entries.len()
         );
     }
 

@@ -131,7 +131,7 @@ fn demonstrate_file_operation_errors(repo_path: &str) -> Result<()> {
             println!("   Partially succeeded - some Git versions allow this");
             // Check what actually got staged
             let status = repo.status()?;
-            println!("   {} files staged despite error", status.files.len());
+            println!("   {} files staged despite error", status.entries.len());
         }
         Err(GitError::CommandFailed(msg)) => {
             println!("   CommandFailed caught: {}", msg);
@@ -228,7 +228,7 @@ fn demonstrate_error_recovery_patterns(repo_path: &str) -> Result<()> {
                     let status = repo.status()?;
                     println!(
                         "      add_all() succeeded, {} files staged",
-                        status.files.len()
+                        status.entries.len()
                     );
                 }
                 Err(fallback_error) => {
@@ -290,11 +290,16 @@ fn demonstrate_error_recovery_patterns(repo_path: &str) -> Result<()> {
     if status.is_clean() {
         println!("      Repository is clean - no commit needed");
     } else {
-        println!("      Repository has {} changes", status.files.len());
+        println!("      Repository has {} changes", status.entries.len());
 
         // Show what would be committed
-        for (file_status, filename) in &status.files {
-            println!("         {:?}: {}", file_status, filename);
+        for entry in &status.entries {
+            println!(
+                "         Index {:?}, Worktree {:?}: {}",
+                entry.index_status,
+                entry.worktree_status,
+                entry.path.display()
+            );
         }
 
         // Safe commit since we know there are changes

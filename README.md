@@ -9,12 +9,15 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 ## Features
 
 - ✅ Repository initialization and opening
-- ✅ File status checking with detailed parsing
-- ✅ File staging (add files, add all, add updates)
+- ✅ **Enhanced file status checking** with separate staged/unstaged tracking
+- ✅ **Precise Git state representation** using IndexStatus and WorktreeStatus enums
+- ✅ File staging (add files, add all, add updates) 
 - ✅ Commit creation with hash return
-- ✅ Type-safe error handling
+- ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
-- ✅ Comprehensive test coverage
+- ✅ **Immutable collections** (Box<[FileEntry]>) for memory efficiency
+- ✅ **Const enum conversions** with zero runtime cost
+- ✅ Comprehensive test coverage (80+ tests)
 
 ## Installation
 
@@ -28,7 +31,7 @@ rustic-git = "0.1.0"
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -37,11 +40,24 @@ fn main() -> Result<()> {
     // Or open an existing repository
     let repo = Repository::open("/path/to/existing/repo")?;
 
-    // Check repository status
+    // Check repository status with enhanced API
     let status = repo.status()?;
     if !status.is_clean() {
-        println!("Modified files: {:?}", status.modified_files());
-        println!("Untracked files: {:?}", status.untracked_files());
+        // Get files by staging state
+        let staged_count = status.staged_files().count();
+        let unstaged_count = status.unstaged_files().count();
+        let untracked_count = status.untracked_entries().count();
+        
+        println!("Repository status:");
+        println!("  Staged: {} files", staged_count);
+        println!("  Unstaged: {} files", unstaged_count);
+        println!("  Untracked: {} files", untracked_count);
+
+        // Filter by specific status types
+        let modified_files: Vec<_> = status
+            .files_with_worktree_status(WorktreeStatus::Modified)
+            .collect();
+        println!("  Modified files: {:?}", modified_files);
     }
 
     // Stage files
@@ -85,7 +101,7 @@ let repo = Repository::open("/path/to/existing/repo")?;
 
 #### `Repository::status() -> Result<GitStatus>`
 
-Get the current repository status.
+Get the current repository status with enhanced staged/unstaged file tracking.
 
 ```rust
 let status = repo.status()?;
@@ -97,36 +113,81 @@ if status.is_clean() {
     println!("Repository has changes");
 }
 
-// Get files by status
-let modified = status.modified_files();
-let untracked = status.untracked_files();
+// Get files by staging state
+let staged_files: Vec<_> = status.staged_files().collect();
+let unstaged_files: Vec<_> = status.unstaged_files().collect();
+let untracked_files: Vec<_> = status.untracked_entries().collect();
 
-// Or work with all files directly
-for (file_status, filename) in &status.files {
-    println!("{:?}: {}", file_status, filename);
+// Filter by specific status types
+let modified_in_index: Vec<_> = status
+    .files_with_index_status(IndexStatus::Modified)
+    .collect();
+let modified_in_worktree: Vec<_> = status
+    .files_with_worktree_status(WorktreeStatus::Modified)
+    .collect();
+
+// Work with all file entries directly
+for entry in status.entries() {
+    println!("[{}][{}] {}", 
+        entry.index_status.to_char(), 
+        entry.worktree_status.to_char(),
+        entry.path.display()
+    );
 }
 ```
 
 The `GitStatus` struct contains:
-- `files: Box<[(FileStatus, String)]>` - All files with their status
+- `entries: Box<[FileEntry]>` - Immutable collection of file entries
 - `is_clean()` - Returns true if no changes
 - `has_changes()` - Returns true if any changes exist
-- `modified_files()` - Get all modified files
-- `untracked_files()` - Get all untracked files
-- `files_with_status(status)` - Get files with specific status
+- `staged_files()` - Iterator over files with index changes (staged)
+- `unstaged_files()` - Iterator over files with worktree changes (unstaged)
+- `untracked_entries()` - Iterator over untracked files
+- `ignored_files()` - Iterator over ignored files
+- `files_with_index_status(status)` - Filter by specific index status
+- `files_with_worktree_status(status)` - Filter by specific worktree status
 
 #### File Status Types
 
+The enhanced status API uses separate enums for index (staged) and worktree (unstaged) states:
+
 ```rust
-pub enum FileStatus {
-    Modified,   // File has been modified
-    Added,      // File has been added to index
-    Deleted,    // File has been deleted
-    Renamed,    // File has been renamed
-    Copied,     // File has been copied
-    Untracked,  // File is not tracked by git
-    Ignored,    // File is ignored by git
+// Index (staging area) status
+pub enum IndexStatus {
+    Clean,      // No changes in index
+    Modified,   // File modified in index
+    Added,      // File added to index
+    Deleted,    // File deleted in index
+    Renamed,    // File renamed in index
+    Copied,     // File copied in index
 }
+
+// Worktree (working directory) status
+pub enum WorktreeStatus {
+    Clean,      // No changes in worktree
+    Modified,   // File modified in worktree
+    Deleted,    // File deleted in worktree
+    Untracked,  // File not tracked by git
+    Ignored,    // File ignored by git
+}
+
+// File entry combining both states
+pub struct FileEntry {
+    pub path: PathBuf,
+    pub index_status: IndexStatus,
+    pub worktree_status: WorktreeStatus,
+}
+```
+
+Both enums support const character conversion:
+```rust
+// Convert to/from git porcelain characters
+let status = IndexStatus::from_char('M');  // IndexStatus::Modified
+let char = status.to_char();               // 'M'
+
+// Display formatting
+println!("{}", IndexStatus::Modified);     // Prints: M
+println!("{}", WorktreeStatus::Untracked); // Prints: ?
 ```
 
 ### Staging Operations
@@ -220,7 +281,7 @@ match repo.commit("message") {
 ## Complete Workflow Example
 
 ```rust
-use rustic_git::{Repository, FileStatus};
+use rustic_git::{Repository, IndexStatus, WorktreeStatus};
 use std::fs;
 
 fn main() -> rustic_git::Result<()> {
@@ -229,23 +290,36 @@ fn main() -> rustic_git::Result<()> {
 
     // Create some files
     fs::write("./my-project/README.md", "# My Project")?;
-    fs::write("./my-project/src/main.rs", "fn main() { println!(\"Hello!\"); }")?;
     fs::create_dir_all("./my-project/src")?;
+    fs::write("./my-project/src/main.rs", "fn main() { println!(\"Hello!\"); }")?;
 
-    // Check status
+    // Check status with enhanced API
     let status = repo.status()?;
-    println!("Found {} untracked files", status.untracked_files().len());
+    let untracked_count = status.untracked_entries().count();
+    println!("Found {} untracked files", untracked_count);
+    
+    // Display detailed status
+    for entry in status.entries() {
+        println!("[{}][{}] {}", 
+            entry.index_status.to_char(),
+            entry.worktree_status.to_char(),
+            entry.path.display()
+        );
+    }
 
     // Stage all files
     repo.add_all()?;
 
-    // Verify staging
+    // Verify staging with enhanced API
     let status = repo.status()?;
-    let added_files: Vec<_> = status.files.iter()
-        .filter(|(s, _)| matches!(s, FileStatus::Added))
-        .map(|(_, f)| f)
+    let staged_files: Vec<_> = status.staged_files().collect();
+    println!("Staged {} files", staged_files.len());
+    
+    // Show specifically added files
+    let added_files: Vec<_> = status
+        .files_with_index_status(IndexStatus::Added)
         .collect();
-    println!("Staged files: {:?}", added_files);
+    println!("Added files: {:?}", added_files);
 
     // Create initial commit
     let hash = repo.commit("Initial commit with project structure")?;
@@ -273,7 +347,7 @@ cargo run --example basic_usage
 # Repository lifecycle operations
 cargo run --example repository_operations
 
-# Status checking and file state filtering
+# Enhanced status API with staged/unstaged tracking
 cargo run --example status_checking
 
 # Staging operations (add, add_all, add_update)

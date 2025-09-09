@@ -8,7 +8,7 @@
 //!
 //! Run with: cargo run --example status_checking
 
-use rustic_git::{FileStatus, Repository, Result};
+use rustic_git::{IndexStatus, Repository, Result, WorktreeStatus};
 use std::fs;
 use std::path::Path;
 
@@ -128,34 +128,41 @@ fn main() -> Result<()> {
     // Demonstrate different query methods
     println!("\nUsing different status query methods:");
 
-    println!("   All files ({} total):", status_mixed.files.len());
-    for (file_status, filename) in &status_mixed.files {
-        println!("      {:?}: {}", file_status, filename);
+    println!("   All files ({} total):", status_mixed.entries.len());
+    for entry in &status_mixed.entries {
+        println!(
+            "      Index {:?}, Worktree {:?}: {}",
+            entry.index_status,
+            entry.worktree_status,
+            entry.path.display()
+        );
     }
 
     // Query by specific status
-    let modified_files = status_mixed.modified_files();
-    if !modified_files.is_empty() {
-        println!("\n   Modified files ({}):", modified_files.len());
-        for filename in &modified_files {
-            println!("      - {}", filename);
+    let unstaged_files: Vec<_> = status_mixed.unstaged_files().collect();
+    if !unstaged_files.is_empty() {
+        println!("\n   Unstaged files ({}):", unstaged_files.len());
+        for entry in &unstaged_files {
+            println!("      - {}", entry.path.display());
         }
     }
 
-    let untracked_files = status_mixed.untracked_files();
+    let untracked_files: Vec<_> = status_mixed.untracked_entries().collect();
     if !untracked_files.is_empty() {
         println!("\n   Untracked files ({}):", untracked_files.len());
-        for filename in &untracked_files {
-            println!("      - {}", filename);
+        for entry in &untracked_files {
+            println!("      - {}", entry.path.display());
         }
     }
 
-    // Query by FileStatus enum
-    let added_files = status_mixed.files_with_status(FileStatus::Added);
+    // Query by IndexStatus enum
+    let added_files: Vec<_> = status_mixed
+        .files_with_index_status(IndexStatus::Added)
+        .collect();
     if !added_files.is_empty() {
         println!("\n   Added files ({}):", added_files.len());
-        for filename in &added_files {
-            println!("      - {}", filename);
+        for entry in &added_files {
+            println!("      - {}", entry.path.display());
         }
     }
 
@@ -167,29 +174,48 @@ fn main() -> Result<()> {
     println!("Filtering examples:");
 
     // Count files by status
-    let mut status_counts = std::collections::HashMap::new();
-    for (file_status, _) in &status_mixed.files {
-        *status_counts
-            .entry(format!("{:?}", file_status))
-            .or_insert(0) += 1;
+    let mut index_status_counts = std::collections::HashMap::new();
+    let mut worktree_status_counts = std::collections::HashMap::new();
+
+    for entry in &status_mixed.entries {
+        if !matches!(entry.index_status, IndexStatus::Clean) {
+            *index_status_counts
+                .entry(format!("{:?}", entry.index_status))
+                .or_insert(0) += 1;
+        }
+        if !matches!(entry.worktree_status, WorktreeStatus::Clean) {
+            *worktree_status_counts
+                .entry(format!("{:?}", entry.worktree_status))
+                .or_insert(0) += 1;
+        }
     }
 
-    println!("   Files by status:");
-    for (status, count) in &status_counts {
+    println!("   Index status counts:");
+    for (status, count) in &index_status_counts {
+        println!("      {}: {} files", status, count);
+    }
+
+    println!("   Worktree status counts:");
+    for (status, count) in &worktree_status_counts {
         println!("      {}: {} files", status, count);
     }
 
     // Filter for specific patterns
     let txt_files: Vec<_> = status_mixed
-        .files
+        .entries
         .iter()
-        .filter(|(_, filename)| filename.ends_with(".txt"))
+        .filter(|entry| entry.path.to_string_lossy().ends_with(".txt"))
         .collect();
 
     if !txt_files.is_empty() {
         println!("\n   .txt files:");
-        for (file_status, filename) in txt_files {
-            println!("      {:?}: {}", file_status, filename);
+        for entry in txt_files {
+            println!(
+                "      Index {:?}, Worktree {:?}: {}",
+                entry.index_status,
+                entry.worktree_status,
+                entry.path.display()
+            );
         }
     }
 
@@ -198,33 +224,24 @@ fn main() -> Result<()> {
     println!("=== Repository State Checking ===\n");
 
     println!("Repository state summary:");
-    println!("   Total files tracked: {}", status_mixed.files.len());
+    println!("   Total files tracked: {}", status_mixed.entries.len());
     println!("   Is clean: {}", status_mixed.is_clean());
     println!("   Has changes: {}", status_mixed.has_changes());
 
     if status_mixed.has_changes() {
         println!("   Repository needs attention!");
 
-        if !status_mixed.modified_files().is_empty() {
-            println!(
-                "      - {} files need to be staged",
-                status_mixed.modified_files().len()
-            );
+        let unstaged_count = status_mixed.unstaged_files().count();
+        if unstaged_count > 0 {
+            println!("      - {} files need to be staged", unstaged_count);
         }
 
-        if !status_mixed.untracked_files().is_empty() {
-            println!(
-                "      - {} untracked files to consider",
-                status_mixed.untracked_files().len()
-            );
+        let untracked_count = status_mixed.untracked_entries().count();
+        if untracked_count > 0 {
+            println!("      - {} untracked files to consider", untracked_count);
         }
 
-        let staged_count = status_mixed
-            .files
-            .iter()
-            .filter(|(status, _)| matches!(status, FileStatus::Added))
-            .count();
-
+        let staged_count = status_mixed.staged_files().count();
         if staged_count > 0 {
             println!("      - {} files ready to commit", staged_count);
         }
@@ -243,27 +260,40 @@ fn display_status_summary(status: &rustic_git::GitStatus) {
     if status.is_clean() {
         println!("   Repository is clean (no changes)");
     } else {
-        println!("   Repository has {} changes", status.files.len());
-        println!("      Modified: {}", status.modified_files().len());
-        println!("      Untracked: {}", status.untracked_files().len());
+        println!("   Repository has {} changes", status.entries.len());
+        println!("      Unstaged: {}", status.unstaged_files().count());
+        println!("      Untracked: {}", status.untracked_entries().count());
     }
 }
 
 /// Display detailed status information
 fn display_detailed_status(status: &rustic_git::GitStatus) {
-    if !status.files.is_empty() {
+    if !status.entries.is_empty() {
         println!("   Detailed file status:");
-        for (file_status, filename) in &status.files {
-            let marker = match file_status {
-                FileStatus::Modified => "[M]",
-                FileStatus::Added => "[A]",
-                FileStatus::Deleted => "[D]",
-                FileStatus::Renamed => "[R]",
-                FileStatus::Copied => "[C]",
-                FileStatus::Untracked => "[?]",
-                FileStatus::Ignored => "[I]",
+        for entry in &status.entries {
+            let index_marker = match entry.index_status {
+                IndexStatus::Modified => "[M]",
+                IndexStatus::Added => "[A]",
+                IndexStatus::Deleted => "[D]",
+                IndexStatus::Renamed => "[R]",
+                IndexStatus::Copied => "[C]",
+                IndexStatus::Clean => "[ ]",
             };
-            println!("      {} {:?}: {}", marker, file_status, filename);
+            let worktree_marker = match entry.worktree_status {
+                WorktreeStatus::Modified => "[M]",
+                WorktreeStatus::Deleted => "[D]",
+                WorktreeStatus::Untracked => "[?]",
+                WorktreeStatus::Ignored => "[I]",
+                WorktreeStatus::Clean => "[ ]",
+            };
+            println!(
+                "      {}{} Index {:?}, Worktree {:?}: {}",
+                index_marker,
+                worktree_marker,
+                entry.index_status,
+                entry.worktree_status,
+                entry.path.display()
+            );
         }
     }
 }

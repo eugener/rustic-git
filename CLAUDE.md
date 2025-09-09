@@ -37,10 +37,23 @@
   - Branch struct: name, branch_type, is_current, commit_hash, upstream tracking
   - BranchType enum: Local, RemoteTracking
   - BranchList: Box<[Branch]> with iterator methods (iter, local, remote), search (find, find_by_short_name), counting (len, local_count, remote_count)
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs)
+- **Commit history & log operations**: Multi-level API for comprehensive commit analysis
+  - Repository::log() -> Result<CommitLog> - get all commits with simple API
+  - Repository::recent_commits(count) -> Result<CommitLog> - get recent N commits
+  - Repository::log_with_options(options) -> Result<LogOptions> - advanced queries with filters
+  - Repository::log_range(from, to) -> Result<CommitLog> - commits between two points
+  - Repository::log_for_paths(paths) -> Result<CommitLog> - commits affecting specific paths
+  - Repository::show_commit(hash) -> Result<CommitDetails> - detailed commit information
+  - Commit struct: hash, author, committer, message, timestamp, parents
+  - CommitLog: Box<[Commit]> with iterator-based filtering (with_message_containing, since, until, merges_only, no_merges, find_by_hash)
+  - LogOptions builder: max_count, since/until dates, author/committer filters, grep, paths, merge filtering
+  - Author struct: name, email, timestamp with Display implementation
+  - CommitMessage: subject and optional body parsing
+  - CommitDetails: full commit info including file changes and diff stats
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs (in src/commands/)
-- **Testing**: 90+ tests covering all functionality with comprehensive edge cases
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs (in src/commands/)
+- **Testing**: 101+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -53,6 +66,7 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 - **staging_operations.rs**: Staging operations - add(), add_all(), add_update() with before/after comparisons
 - **commit_workflows.rs**: Commit operations and Hash type - commit(), commit_with_author(), Hash methods
 - **branch_operations.rs**: Complete branch management - create/delete/checkout branches, BranchList filtering, branch type handling, search operations
+- **commit_history.rs**: Comprehensive commit history & log operations - demonstrates all commit querying APIs, filtering, analysis, and advanced LogOptions usage
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
 
 Run examples with: `cargo run --example <example_name>`

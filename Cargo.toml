@@ -9,3 +9,4 @@ repository = "https://github.com/eugener/rustic-git"
 readme = "README.md"
 
 [dependencies]
+chrono = { version = "0.4", features = ["serde"] }

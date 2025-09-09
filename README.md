@@ -15,11 +15,13 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ Commit creation with hash return
 - ✅ **Complete branch operations** with type-safe Branch API
 - ✅ **Branch management** (create, delete, checkout, list)
+- ✅ **Commit history & log operations** with multi-level API
+- ✅ **Advanced commit querying** with filtering and analysis
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (90+ tests)
+- ✅ Comprehensive test coverage (101+ tests)
 
 ## Installation
 
@@ -33,7 +35,7 @@ rustic-git = "0.1.0"
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -78,6 +80,23 @@ fn main() -> Result<()> {
     // Create and switch to new branch
     let feature_branch = repo.checkout_new("feature/new-api", None)?;
     println!("Created and switched to: {}", feature_branch.name);
+
+    // Commit history operations
+    let commits = repo.log()?;
+    println!("Total commits: {}", commits.len());
+
+    // Get recent commits
+    let recent = repo.recent_commits(5)?;
+    for commit in recent.iter() {
+        println!("{} - {}", commit.hash.short(), commit.message.subject);
+    }
+
+    // Advanced commit queries
+    let opts = LogOptions::new()
+        .max_count(10)
+        .grep("fix".to_string());
+    let bug_fixes = repo.log_with_options(&opts)?;
+    println!("Found {} bug fixes", bug_fixes.len());
 
     Ok(())
 }
@@ -416,6 +435,199 @@ if let Some(current) = branches.current() {
 }
 ```
 
+### Commit History Operations
+
+#### `Repository::log() -> Result<CommitLog>`
+
+Get all commits in the repository.
+
+```rust
+let commits = repo.log()?;
+println!("Total commits: {}", commits.len());
+
+for commit in commits.iter() {
+    println!("{} - {} by {} at {}",
+        commit.hash.short(),
+        commit.message.subject,
+        commit.author.name,
+        commit.timestamp.format("%Y-%m-%d %H:%M:%S")
+    );
+}
+```
+
+#### `Repository::recent_commits(count) -> Result<CommitLog>`
+
+Get the most recent N commits.
+
+```rust
+let recent = repo.recent_commits(10)?;
+for commit in recent.iter() {
+    println!("{} - {}", commit.hash.short(), commit.message.subject);
+    if let Some(body) = &commit.message.body {
+        println!("  {}", body);
+    }
+}
+```
+
+#### `Repository::log_with_options(options) -> Result<CommitLog>`
+
+Advanced commit queries with filtering options.
+
+```rust
+use chrono::{Utc, Duration};
+
+// Search commits with message containing "fix"
+let bug_fixes = repo.log_with_options(&LogOptions::new()
+    .max_count(20)
+    .grep("fix".to_string()))?;
+
+// Get commits by specific author
+let author_commits = repo.log_with_options(&LogOptions::new()
+    .author("jane@example.com".to_string()))?;
+
+// Get commits from date range
+let since = Utc::now() - Duration::days(30);
+let recent_commits = repo.log_with_options(&LogOptions::new()
+    .since(since)
+    .no_merges(true))?;
+
+// Get commits affecting specific paths
+let file_commits = repo.log_with_options(&LogOptions::new()
+    .paths(vec!["src/main.rs".into(), "docs/".into()]))?;
+```
+
+#### `Repository::log_range(from, to) -> Result<CommitLog>`
+
+Get commits between two specific commits.
+
+```rust
+// Get all commits between two hashes
+let range_commits = repo.log_range(&from_hash, &to_hash)?;
+println!("Commits in range: {}", range_commits.len());
+```
+
+#### `Repository::log_for_paths(paths) -> Result<CommitLog>`
+
+Get commits that affected specific files or directories.
+
+```rust
+// Get commits that modified specific files
+let file_commits = repo.log_for_paths(&["src/main.rs", "Cargo.toml"])?;
+
+// Get commits that affected a directory
+let dir_commits = repo.log_for_paths(&["src/"])?;
+```
+
+#### `Repository::show_commit(hash) -> Result<CommitDetails>`
+
+Get detailed information about a specific commit including file changes.
+
+```rust
+let details = repo.show_commit(&commit_hash)?;
+println!("Commit: {}", details.commit.hash);
+println!("Author: {} <{}>", details.commit.author.name, details.commit.author.email);
+println!("Date: {}", details.commit.timestamp);
+println!("Message: {}", details.commit.message.subject);
+
+if let Some(body) = &details.commit.message.body {
+    println!("Body: {}", body);
+}
+
+println!("Files changed: {}", details.files_changed.len());
+for file in &details.files_changed {
+    println!("  - {}", file.display());
+}
+
+println!("Changes: +{} -{}", details.insertions, details.deletions);
+```
+
+#### Commit Types and Filtering
+
+The commit API provides rich types for working with commit data:
+
+```rust
+// Commit represents a single commit
+pub struct Commit {
+    pub hash: Hash,
+    pub author: Author,
+    pub committer: Author,
+    pub message: CommitMessage,
+    pub timestamp: DateTime<Utc>,
+    pub parents: Box<[Hash]>,
+}
+
+// Author information with timestamp
+pub struct Author {
+    pub name: String,
+    pub email: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+// Parsed commit message
+pub struct CommitMessage {
+    pub subject: String,
+    pub body: Option<String>,
+}
+
+// Detailed commit information
+pub struct CommitDetails {
+    pub commit: Commit,
+    pub files_changed: Box<[PathBuf]>,
+    pub insertions: u32,
+    pub deletions: u32,
+}
+```
+
+#### CommitLog Filtering
+
+`CommitLog` provides iterator-based filtering methods:
+
+```rust
+let commits = repo.log()?;
+
+// Filter by message content
+let bug_fixes: Vec<_> = commits.with_message_containing("fix").collect();
+let features: Vec<_> = commits.with_message_containing("feat").collect();
+
+// Filter by date
+use chrono::{Utc, Duration};
+let last_week = Utc::now() - Duration::weeks(1);
+let recent: Vec<_> = commits.since(last_week).collect();
+
+// Filter by commit type
+let merge_commits: Vec<_> = commits.merges_only().collect();
+let regular_commits: Vec<_> = commits.no_merges().collect();
+
+// Search by hash
+if let Some(commit) = commits.find_by_hash(&target_hash) {
+    println!("Found: {}", commit.message.subject);
+}
+
+if let Some(commit) = commits.find_by_short_hash("abc1234") {
+    println!("Found by short hash: {}", commit.message.subject);
+}
+```
+
+#### LogOptions Builder
+
+`LogOptions` provides a builder pattern for advanced queries:
+
+```rust
+let options = LogOptions::new()
+    .max_count(50)                          // Limit number of commits
+    .since(Utc::now() - Duration::days(30)) // Since date
+    .until(Utc::now())                      // Until date
+    .author("jane@example.com".to_string()) // Filter by author
+    .committer("john@example.com".to_string()) // Filter by committer
+    .grep("important".to_string())          // Search in commit messages
+    .follow_renames(true)                   // Follow file renames
+    .merges_only(true)                      // Only merge commits
+    .no_merges(true)                        // Exclude merge commits
+    .paths(vec!["src/".into()]);            // Filter by paths
+
+let filtered_commits = repo.log_with_options(&options)?;
+```
+
 ### Hash Type
 
 The `Hash` type represents Git object hashes (commits, trees, blobs, etc.).
@@ -559,6 +771,9 @@ cargo run --example commit_workflows
 # Branch operations (create, delete, checkout, list)
 cargo run --example branch_operations
 
+# Commit history and log operations with advanced querying
+cargo run --example commit_history
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -571,6 +786,7 @@ cargo run --example error_handling
 - **`staging_operations.rs`** - Shows all staging methods (add, add_all, add_update) with before/after status comparisons
 - **`commit_workflows.rs`** - Demonstrates commit operations and Hash type methods, including custom authors and hash management
 - **`branch_operations.rs`** - Complete branch management demonstration: create, checkout, delete branches, and BranchList filtering
+- **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use temporary directories in `/tmp/` and include automatic cleanup for safe execution.
@@ -630,6 +846,7 @@ cargo run --example status_checking
 cargo run --example staging_operations
 cargo run --example commit_workflows
 cargo run --example branch_operations
+cargo run --example commit_history
 cargo run --example error_handling
 ```
 
@@ -645,7 +862,6 @@ cargo run --example error_handling
 ## Roadmap
 
 Future planned features:
-- [ ] Commit history and log operations
 - [ ] Diff operations
 - [ ] Remote operations (clone, push, pull)
 - [ ] Merge and rebase operations
@@ -654,4 +870,4 @@ Future planned features:
 
 ## Version
 
-Current version: 0.1.0 - Basic git workflow with branch operations (init, status, add, commit, branch)
+Current version: 0.1.0 - Complete git workflow with commit history (init, status, add, commit, branch, log)

@@ -214,8 +214,8 @@ impl Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::fs;
-    use std::path::Path;
 
     #[test]
     fn test_parse_porcelain_output() {
@@ -283,22 +283,22 @@ mod tests {
 
     #[test]
     fn test_repository_status() {
-        let test_path = "/tmp/test_status_repo";
+        let test_path = env::temp_dir().join("test_status_repo");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Create a repository
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Get status of empty repository
         let status = repo.status().unwrap();
         assert!(status.is_clean());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]

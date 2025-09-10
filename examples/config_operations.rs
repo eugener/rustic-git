@@ -9,24 +9,23 @@
 //! Run with: cargo run --example config_operations
 
 use rustic_git::{Repository, Result};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
     println!("Rustic Git - Repository Configuration Operations Example\n");
 
     // Use a temporary directory for this example
-    let repo_path = "/tmp/rustic_git_config_example";
+    let repo_path = env::temp_dir().join("rustic_git_config_example");
 
     // Clean up any previous run
-    if Path::new(repo_path).exists() {
-        fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
+    if repo_path.exists() {
+        fs::remove_dir_all(&repo_path).expect("Failed to clean up previous example");
     }
 
-    println!("Initializing new repository at: {}", repo_path);
+    println!("Initializing new repository at: {}", repo_path.display());
 
     // Initialize a new repository
-    let repo = Repository::init(repo_path, false)?;
+    let repo = Repository::init(&repo_path, false)?;
 
     // ==================== USER CONFIGURATION ====================
 
@@ -77,7 +76,7 @@ fn main() -> Result<()> {
     println!("\n[COMMIT] Testing configuration with commit operations...");
 
     // Create a test file
-    let test_file_path = format!("{}/test.txt", repo_path);
+    let test_file_path = repo_path.join("test.txt");
     fs::write(
         &test_file_path,
         "Hello from rustic-git configuration example!",
@@ -185,7 +184,7 @@ fn main() -> Result<()> {
 
     // Create another commit with the team configuration
     fs::write(
-        format!("{}/team.md", repo_path),
+        repo_path.join("team.md"),
         "# Team Development\n\nThis repository is configured for team development.",
     )?;
     repo.add(&["team.md"])?;
@@ -202,7 +201,7 @@ fn main() -> Result<()> {
     // ==================== CLEANUP ====================
 
     println!("\n[CLEANUP] Cleaning up...");
-    fs::remove_dir_all(repo_path).expect("Failed to clean up example");
+    fs::remove_dir_all(&repo_path).expect("Failed to clean up example");
     println!("Example completed successfully!");
 
     Ok(())

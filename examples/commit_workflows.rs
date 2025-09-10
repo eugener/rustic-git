@@ -10,37 +10,36 @@
 //! Run with: cargo run --example commit_workflows
 
 use rustic_git::{Hash, Repository, Result};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
     println!("Rustic Git - Commit Workflows Example\n");
 
-    let repo_path = "/tmp/rustic_git_commit_example";
+    let repo_path = env::temp_dir().join("rustic_git_commit_example");
 
     // Clean up any previous run
-    if Path::new(repo_path).exists() {
-        fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
+    if repo_path.exists() {
+        fs::remove_dir_all(&repo_path).expect("Failed to clean up previous example");
     }
 
     // Initialize repository
     println!("Setting up repository for commit demonstrations...");
-    let repo = Repository::init(repo_path, false)?;
+    let repo = Repository::init(&repo_path, false)?;
     println!("Repository initialized\n");
 
     println!("=== Basic Commit Operations ===\n");
 
     // Create initial files
     println!("Creating initial project files...");
-    fs::create_dir_all(format!("{}/src", repo_path))?;
+    fs::create_dir_all(repo_path.join("src"))?;
 
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         "# Commit Demo Project\n\nThis project demonstrates commit workflows with rustic-git.\n",
     )?;
 
     fs::write(
-        format!("{}/src/main.rs", repo_path),
+        repo_path.join("src/main.rs"),
         r#"fn main() {
     println!("Hello, Commit Demo!");
 }
@@ -48,7 +47,7 @@ fn main() -> Result<()> {
     )?;
 
     fs::write(
-        format!("{}/Cargo.toml", repo_path),
+        repo_path.join("Cargo.toml"),
         r#"[package]
 name = "commit-demo"
 version = "0.1.0"
@@ -109,10 +108,10 @@ edition = "2021"
 
     // Create more files to commit with custom author
     println!("Adding features for custom author commit...");
-    fs::create_dir_all(format!("{}/tests", repo_path))?;
+    fs::create_dir_all(repo_path.join("tests"))?;
 
     fs::write(
-        format!("{}/src/lib.rs", repo_path),
+        repo_path.join("src/lib.rs"),
         r#"//! Commit demo library
 
 pub fn greet(name: &str) -> String {
@@ -132,7 +131,7 @@ mod tests {
     )?;
 
     fs::write(
-        format!("{}/tests/integration_test.rs", repo_path),
+        repo_path.join("tests/integration_test.rs"),
         r#"use commit_demo::greet;
 
 #[test]
@@ -166,7 +165,7 @@ fn test_integration() {
     // Commit 3: Update version
     println!("Step 1: Update version information...");
     fs::write(
-        format!("{}/Cargo.toml", repo_path),
+        repo_path.join("Cargo.toml"),
         r#"[package]
 name = "commit-demo"
 version = "0.2.0"
@@ -182,7 +181,7 @@ description = "A demo project for commit workflows"
     // Commit 4: Add documentation
     println!("Step 2: Add documentation...");
     fs::write(
-        format!("{}/CHANGELOG.md", repo_path),
+        repo_path.join("CHANGELOG.md"),
         r#"# Changelog
 
 ## [0.2.0] - 2024-01-01
@@ -210,7 +209,7 @@ description = "A demo project for commit workflows"
     // Commit 5: Final polish
     println!("Step 3: Final polish...");
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         r#"# Commit Demo Project
 
 This project demonstrates commit workflows with rustic-git.
@@ -298,10 +297,7 @@ See CHANGELOG.md for version history.
     println!("\nTesting commit with empty message:");
 
     // Create a change to commit
-    fs::write(
-        format!("{}/temp_for_empty_message.txt", repo_path),
-        "temp content",
-    )?;
+    fs::write(repo_path.join("temp_for_empty_message.txt"), "temp content")?;
     repo.add(&["temp_for_empty_message.txt"])?;
 
     match repo.commit("") {
@@ -336,7 +332,7 @@ See CHANGELOG.md for version history.
 
     // Clean up
     println!("\nCleaning up example repository...");
-    fs::remove_dir_all(repo_path)?;
+    fs::remove_dir_all(&repo_path)?;
     println!("Commit workflows example completed!");
 
     Ok(())

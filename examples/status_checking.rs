@@ -9,22 +9,22 @@
 //! Run with: cargo run --example status_checking
 
 use rustic_git::{IndexStatus, Repository, Result, WorktreeStatus};
+use std::env;
 use std::fs;
-use std::path::Path;
 
 fn main() -> Result<()> {
     println!("Rustic Git - Status Checking Example\n");
 
-    let repo_path = "/tmp/rustic_git_status_example";
+    let repo_path = env::temp_dir().join("rustic_git_status_example");
 
     // Clean up any previous run
-    if Path::new(repo_path).exists() {
-        fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
+    if repo_path.exists() {
+        fs::remove_dir_all(&repo_path).expect("Failed to clean up previous example");
     }
 
     // Initialize repository
     println!("Setting up repository for status demonstration...");
-    let repo = Repository::init(repo_path, false)?;
+    let repo = Repository::init(&repo_path, false)?;
 
     println!("=== Clean Repository Status ===\n");
 
@@ -40,26 +40,17 @@ fn main() -> Result<()> {
     println!("Creating test files...");
 
     // Create some files that will be untracked
-    fs::write(
-        format!("{}/untracked1.txt", repo_path),
-        "This file is untracked",
-    )?;
-    fs::write(
-        format!("{}/untracked2.txt", repo_path),
-        "Another untracked file",
-    )?;
+    fs::write(repo_path.join("untracked1.txt"), "This file is untracked")?;
+    fs::write(repo_path.join("untracked2.txt"), "Another untracked file")?;
 
     // Create a .gitignore to demonstrate ignored files
-    fs::write(
-        format!("{}/.gitignore", repo_path),
-        "*.log\n*.tmp\n/temp/\n",
-    )?;
+    fs::write(repo_path.join(".gitignore"), "*.log\n*.tmp\n/temp/\n")?;
 
     // Create files that will be ignored
-    fs::write(format!("{}/debug.log", repo_path), "Log file content")?;
-    fs::write(format!("{}/cache.tmp", repo_path), "Temporary file")?;
-    fs::create_dir_all(format!("{}/temp", repo_path))?;
-    fs::write(format!("{}/temp/data.txt", repo_path), "Temp data")?;
+    fs::write(repo_path.join("debug.log"), "Log file content")?;
+    fs::write(repo_path.join("cache.tmp"), "Temporary file")?;
+    fs::create_dir_all(repo_path.join("temp"))?;
+    fs::write(repo_path.join("temp/data.txt"), "Temp data")?;
 
     println!("Created test files");
 
@@ -100,11 +91,11 @@ fn main() -> Result<()> {
 
     // Modify existing tracked files
     fs::write(
-        format!("{}/untracked1.txt", repo_path),
+        repo_path.join("untracked1.txt"),
         "This file has been MODIFIED!",
     )?;
     fs::write(
-        format!("{}/.gitignore", repo_path),
+        repo_path.join(".gitignore"),
         "*.log\n*.tmp\n/temp/\n# Added comment\n",
     )?;
     println!("Modified untracked1.txt and .gitignore");
@@ -249,7 +240,7 @@ fn main() -> Result<()> {
 
     // Clean up
     println!("\nCleaning up example repository...");
-    fs::remove_dir_all(repo_path)?;
+    fs::remove_dir_all(&repo_path)?;
     println!("Status checking example completed!");
 
     Ok(())

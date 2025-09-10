@@ -9,20 +9,19 @@
 //! Run with: cargo run --example error_handling
 
 use rustic_git::{GitError, Repository, Result};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
     println!("Rustic Git - Error Handling Example\n");
 
-    let base_path = "/tmp/rustic_git_error_example";
-    let repo_path = format!("{}/test_repo", base_path);
+    let base_path = env::temp_dir().join("rustic_git_error_example");
+    let repo_path = base_path.join("test_repo");
 
     // Clean up any previous runs
-    if Path::new(base_path).exists() {
-        fs::remove_dir_all(base_path).expect("Failed to clean up previous example");
+    if base_path.exists() {
+        fs::remove_dir_all(&base_path).expect("Failed to clean up previous example");
     }
-    fs::create_dir_all(base_path).expect("Failed to create base directory");
+    fs::create_dir_all(&base_path).expect("Failed to create base directory");
 
     println!("=== GitError Types and Handling ===\n");
 
@@ -31,18 +30,18 @@ fn main() -> Result<()> {
     demonstrate_file_operation_errors(&repo_path)?;
     demonstrate_git_command_errors(&repo_path)?;
     demonstrate_error_recovery_patterns(&repo_path)?;
-    demonstrate_error_propagation_strategies(base_path)?;
+    demonstrate_error_propagation_strategies(&base_path)?;
 
     // Clean up
     println!("Cleaning up error handling examples...");
-    fs::remove_dir_all(base_path)?;
+    fs::remove_dir_all(&base_path)?;
     println!("Error handling example completed successfully!");
 
     Ok(())
 }
 
 /// Demonstrate repository-related errors
-fn demonstrate_repository_errors(repo_path: &str) -> Result<()> {
+fn demonstrate_repository_errors(repo_path: &std::path::Path) -> Result<()> {
     println!("Repository Error Scenarios:\n");
 
     // 1. Opening non-existent repository
@@ -60,7 +59,7 @@ fn demonstrate_repository_errors(repo_path: &str) -> Result<()> {
     }
 
     // 2. Opening a file as a repository
-    let fake_repo_path = format!("{}_fake.txt", repo_path);
+    let fake_repo_path = repo_path.with_extension("fake.txt");
     fs::write(&fake_repo_path, "This is not a git repository")?;
 
     println!("\n2. Attempting to open regular file as repository:");
@@ -98,14 +97,14 @@ fn demonstrate_repository_errors(repo_path: &str) -> Result<()> {
 }
 
 /// Demonstrate file operation related errors
-fn demonstrate_file_operation_errors(repo_path: &str) -> Result<()> {
+fn demonstrate_file_operation_errors(repo_path: &std::path::Path) -> Result<()> {
     println!("File Operation Error Scenarios:\n");
 
     // Set up a valid repository first
     let repo = Repository::init(repo_path, false)?;
 
     // Create some test files
-    fs::write(format!("{}/test.txt", repo_path), "Test content")?;
+    fs::write(repo_path.join("test.txt"), "Test content")?;
     repo.add(&["test.txt"])?;
     repo.commit("Initial commit")?;
 
@@ -124,7 +123,7 @@ fn demonstrate_file_operation_errors(repo_path: &str) -> Result<()> {
 
     // 2. Mixed valid and invalid files
     println!("\n2. Adding mix of valid and invalid files:");
-    fs::write(format!("{}/valid.txt", repo_path), "Valid file")?;
+    fs::write(repo_path.join("valid.txt"), "Valid file")?;
 
     match repo.add(&["valid.txt", "invalid.txt"]) {
         Ok(_) => {
@@ -154,7 +153,7 @@ fn demonstrate_file_operation_errors(repo_path: &str) -> Result<()> {
 }
 
 /// Demonstrate Git command related errors
-fn demonstrate_git_command_errors(repo_path: &str) -> Result<()> {
+fn demonstrate_git_command_errors(repo_path: &std::path::Path) -> Result<()> {
     println!("Git Command Error Scenarios:\n");
 
     let repo = Repository::open(repo_path)?;
@@ -180,7 +179,7 @@ fn demonstrate_git_command_errors(repo_path: &str) -> Result<()> {
 
     // Stage a file for testing
     fs::write(
-        format!("{}/commit_test.txt", repo_path),
+        repo_path.join("commit_test.txt"),
         "Content for commit testing",
     )?;
     repo.add(&["commit_test.txt"])?;
@@ -205,7 +204,7 @@ fn demonstrate_git_command_errors(repo_path: &str) -> Result<()> {
 }
 
 /// Demonstrate error recovery patterns
-fn demonstrate_error_recovery_patterns(repo_path: &str) -> Result<()> {
+fn demonstrate_error_recovery_patterns(repo_path: &std::path::Path) -> Result<()> {
     println!("Error Recovery Patterns:\n");
 
     let repo = Repository::open(repo_path)?;
@@ -242,8 +241,8 @@ fn demonstrate_error_recovery_patterns(repo_path: &str) -> Result<()> {
     println!("\n2. Partial Success Pattern:");
 
     // Create some files with known issues
-    fs::write(format!("{}/good1.txt", repo_path), "Good file 1")?;
-    fs::write(format!("{}/good2.txt", repo_path), "Good file 2")?;
+    fs::write(repo_path.join("good1.txt"), "Good file 1")?;
+    fs::write(repo_path.join("good2.txt"), "Good file 2")?;
     // Don't create bad1.txt - it will be missing
 
     let mixed_files = ["good1.txt", "bad1.txt", "good2.txt"];
@@ -314,7 +313,7 @@ fn demonstrate_error_recovery_patterns(repo_path: &str) -> Result<()> {
 }
 
 /// Demonstrate error propagation strategies
-fn demonstrate_error_propagation_strategies(base_path: &str) -> Result<()> {
+fn demonstrate_error_propagation_strategies(base_path: &std::path::Path) -> Result<()> {
     println!("Error Propagation Strategies:\n");
 
     // Strategy 1: Early return with ?
@@ -355,13 +354,13 @@ fn demonstrate_error_propagation_strategies(base_path: &str) -> Result<()> {
 }
 
 /// Workflow that returns early on first error
-fn workflow_with_early_return(base_path: &str) -> Result<String> {
-    let repo_path = format!("{}/early_return_test", base_path);
+fn workflow_with_early_return(base_path: &std::path::Path) -> Result<String> {
+    let repo_path = base_path.join("early_return_test");
 
     // This will propagate any error immediately
     let repo = Repository::init(&repo_path, false)?;
 
-    fs::write(format!("{}/file1.txt", repo_path), "Content 1")?;
+    fs::write(repo_path.join("file1.txt"), "Content 1")?;
     repo.add(&["file1.txt"])?;
 
     let hash = repo.commit("Early return workflow commit")?;
@@ -373,8 +372,8 @@ fn workflow_with_early_return(base_path: &str) -> Result<String> {
 }
 
 /// Workflow that collects all errors instead of failing fast
-fn workflow_with_error_collection(base_path: &str) -> Vec<Result<String>> {
-    let repo_path = format!("{}/error_collection_test", base_path);
+fn workflow_with_error_collection(base_path: &std::path::Path) -> Vec<Result<String>> {
+    let repo_path = base_path.join("error_collection_test");
     let mut results = Vec::new();
 
     // Step 1: Initialize repo
@@ -385,7 +384,7 @@ fn workflow_with_error_collection(base_path: &str) -> Vec<Result<String>> {
 
     for file in &files_to_create {
         results.push(
-            fs::write(format!("{}/{}", repo_path, file), "Content")
+            fs::write(repo_path.join(file), "Content")
                 .map_err(GitError::from)
                 .map(|_| format!("Created {}", file)),
         );
@@ -418,20 +417,19 @@ fn workflow_with_error_collection(base_path: &str) -> Vec<Result<String>> {
 }
 
 /// Workflow with enhanced error context
-fn workflow_with_context(base_path: &str) -> Result<String> {
-    let repo_path = format!("{}/context_test", base_path);
+fn workflow_with_context(base_path: &std::path::Path) -> Result<String> {
+    let repo_path = base_path.join("context_test");
 
     // Add context to errors
     let repo = Repository::init(&repo_path, false).inspect_err(|_e| {
-        eprintln!("Context: Failed to initialize repository at {}", repo_path);
+        eprintln!(
+            "Context: Failed to initialize repository at {}",
+            repo_path.display()
+        );
     })?;
 
     // Create file with context
-    fs::write(
-        format!("{}/context_file.txt", repo_path),
-        "Content with context",
-    )
-    .map_err(|e| {
+    fs::write(repo_path.join("context_file.txt"), "Content with context").map_err(|e| {
         eprintln!("Context: Failed to create context_file.txt");
         GitError::from(e)
     })?;

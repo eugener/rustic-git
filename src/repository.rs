@@ -103,8 +103,10 @@ impl Repository {
     ///
     /// ```rust
     /// use rustic_git::Repository;
+    /// use std::env;
     ///
-    /// let repo = Repository::init("/tmp/test", false)?;
+    /// let test_path = env::temp_dir().join("test");
+    /// let repo = Repository::init(&test_path, false)?;
     /// repo.config().set_user("John Doe", "john@example.com")?;
     ///
     /// let (name, email) = repo.config().get_user()?;
@@ -120,82 +122,82 @@ impl Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::fs;
-    use std::path::Path;
 
     #[test]
     fn test_git_init_creates_repository() {
-        let test_path = "/tmp/test_repo";
+        let test_path = env::temp_dir().join("test_repo");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Initialize repository
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Check that .git directory was created
-        assert!(Path::new(&format!("{}/.git", test_path)).exists());
-        assert_eq!(repo.repo_path(), Path::new(test_path));
+        assert!(test_path.join(".git").exists());
+        assert_eq!(repo.repo_path(), test_path.as_path());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_git_init_bare_repository() {
-        let test_path = "/tmp/test_bare_repo";
+        let test_path = env::temp_dir().join("test_bare_repo");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Initialize bare repository
-        let repo = Repository::init(test_path, true).unwrap();
+        let repo = Repository::init(&test_path, true).unwrap();
 
         // Check that bare repo files were created (no .git subdirectory)
-        assert!(Path::new(&format!("{}/HEAD", test_path)).exists());
-        assert!(Path::new(&format!("{}/objects", test_path)).exists());
-        assert!(!Path::new(&format!("{}/.git", test_path)).exists());
-        assert_eq!(repo.repo_path(), Path::new(test_path));
+        assert!(test_path.join("HEAD").exists());
+        assert!(test_path.join("objects").exists());
+        assert!(!test_path.join(".git").exists());
+        assert_eq!(repo.repo_path(), test_path.as_path());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_open_existing_repository() {
-        let test_path = "/tmp/test_open_repo";
+        let test_path = env::temp_dir().join("test_open_repo");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // First create a repository
-        let _created_repo = Repository::init(test_path, false).unwrap();
+        let _created_repo = Repository::init(&test_path, false).unwrap();
 
         // Now open the existing repository
-        let opened_repo = Repository::open(test_path).unwrap();
-        assert_eq!(opened_repo.repo_path(), Path::new(test_path));
+        let opened_repo = Repository::open(&test_path).unwrap();
+        assert_eq!(opened_repo.repo_path(), test_path.as_path());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_open_nonexistent_path() {
-        let test_path = "/tmp/nonexistent_repo_path";
+        let test_path = env::temp_dir().join("nonexistent_repo_path");
 
         // Ensure path doesn't exist
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Try to open non-existent repository
-        let result = Repository::open(test_path);
+        let result = Repository::open(&test_path);
         assert!(result.is_err());
 
         if let Err(GitError::CommandFailed(msg)) = result {
@@ -207,16 +209,16 @@ mod tests {
 
     #[test]
     fn test_open_non_git_directory() {
-        let test_path = "/tmp/not_a_git_repo";
+        let test_path = env::temp_dir().join("not_a_git_repo");
 
         // Clean up if exists and create a regular directory
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
-        fs::create_dir(test_path).unwrap();
+        fs::create_dir(&test_path).unwrap();
 
         // Try to open directory that's not a git repository
-        let result = Repository::open(test_path);
+        let result = Repository::open(&test_path);
         assert!(result.is_err());
 
         if let Err(GitError::CommandFailed(msg)) = result {
@@ -226,46 +228,46 @@ mod tests {
         }
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_repo_path_method() {
-        let test_path = "/tmp/test_repo_path";
+        let test_path = env::temp_dir().join("test_repo_path");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Initialize repository
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Test repo_path method
-        assert_eq!(repo.repo_path(), Path::new(test_path));
+        assert_eq!(repo.repo_path(), test_path.as_path());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_repo_path_method_after_open() {
-        let test_path = "/tmp/test_repo_path_open";
+        let test_path = env::temp_dir().join("test_repo_path_open");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
         // Initialize and then open repository
-        let _created_repo = Repository::init(test_path, false).unwrap();
-        let opened_repo = Repository::open(test_path).unwrap();
+        let _created_repo = Repository::init(&test_path, false).unwrap();
+        let opened_repo = Repository::open(&test_path).unwrap();
 
         // Test repo_path method on opened repository
-        assert_eq!(opened_repo.repo_path(), Path::new(test_path));
+        assert_eq!(opened_repo.repo_path(), test_path.as_path());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
@@ -305,98 +307,98 @@ mod tests {
 
     #[test]
     fn test_init_with_relative_path() {
-        let test_path = "relative_test_repo";
+        let test_path = env::temp_dir().join("relative_test_repo");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
-        }
-
-        let result = Repository::init(test_path, false);
-
-        if let Ok(repo) = result {
-            assert_eq!(repo.repo_path(), Path::new(test_path));
-
-            // Clean up
-            fs::remove_dir_all(test_path).unwrap();
-        }
-    }
-
-    #[test]
-    fn test_open_with_relative_path() {
-        let test_path = "relative_open_repo";
-
-        // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
-        }
-
-        // Create the repo first
-        let _created = Repository::init(test_path, false).unwrap();
-
-        // Now open with relative path
-        let result = Repository::open(test_path);
-        assert!(result.is_ok());
-
-        let repo = result.unwrap();
-        assert_eq!(repo.repo_path(), Path::new(test_path));
-
-        // Clean up
-        fs::remove_dir_all(test_path).unwrap();
-    }
-
-    #[test]
-    fn test_init_with_unicode_path() {
-        let test_path = "/tmp/测试_repo_🚀";
-
-        // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
-        }
-
-        let result = Repository::init(test_path, false);
-
-        if let Ok(repo) = result {
-            assert_eq!(repo.repo_path(), Path::new(test_path));
-
-            // Clean up
-            fs::remove_dir_all(test_path).unwrap();
-        }
-    }
-
-    #[test]
-    fn test_path_with_spaces() {
-        let test_path = "/tmp/test repo with spaces";
-
-        // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
-        }
-
-        let result = Repository::init(test_path, false);
-
-        if let Ok(repo) = result {
-            assert_eq!(repo.repo_path(), Path::new(test_path));
-
-            // Clean up
-            fs::remove_dir_all(test_path).unwrap();
-        }
-    }
-
-    #[test]
-    fn test_very_long_path() {
-        let long_component = "a".repeat(100);
-        let test_path = format!("/tmp/{}", long_component);
-
-        // Clean up if exists
-        if Path::new(&test_path).exists() {
+        if test_path.exists() {
             fs::remove_dir_all(&test_path).unwrap();
         }
 
         let result = Repository::init(&test_path, false);
 
         if let Ok(repo) = result {
-            assert_eq!(repo.repo_path(), Path::new(&test_path));
+            assert_eq!(repo.repo_path(), test_path.as_path());
+
+            // Clean up
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_open_with_relative_path() {
+        let test_path = env::temp_dir().join("relative_open_repo");
+
+        // Clean up if exists
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+
+        // Create the repo first
+        let _created = Repository::init(&test_path, false).unwrap();
+
+        // Now open with relative path
+        let result = Repository::open(&test_path);
+        assert!(result.is_ok());
+
+        let repo = result.unwrap();
+        assert_eq!(repo.repo_path(), test_path.as_path());
+
+        // Clean up
+        fs::remove_dir_all(&test_path).unwrap();
+    }
+
+    #[test]
+    fn test_init_with_unicode_path() {
+        let test_path = env::temp_dir().join("测试_repo_🚀");
+
+        // Clean up if exists
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+
+        let result = Repository::init(&test_path, false);
+
+        if let Ok(repo) = result {
+            assert_eq!(repo.repo_path(), test_path.as_path());
+
+            // Clean up
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_path_with_spaces() {
+        let test_path = env::temp_dir().join("test repo with spaces");
+
+        // Clean up if exists
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+
+        let result = Repository::init(&test_path, false);
+
+        if let Ok(repo) = result {
+            assert_eq!(repo.repo_path(), test_path.as_path());
+
+            // Clean up
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_very_long_path() {
+        let long_component = "a".repeat(100);
+        let test_path = env::temp_dir().join(&long_component);
+
+        // Clean up if exists
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
+        }
+
+        let result = Repository::init(&test_path, false);
+
+        if let Ok(repo) = result {
+            assert_eq!(repo.repo_path(), test_path.as_path());
 
             // Clean up
             fs::remove_dir_all(&test_path).unwrap();

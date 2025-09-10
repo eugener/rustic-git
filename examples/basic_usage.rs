@@ -10,37 +10,37 @@
 //! Run with: cargo run --example basic_usage
 
 use rustic_git::{Repository, Result};
+use std::env;
 use std::fs;
-use std::path::Path;
 
 fn main() -> Result<()> {
     println!("Rustic Git - Basic Usage Example\n");
 
     // Use a temporary directory for this example
-    let repo_path = "/tmp/rustic_git_basic_example";
+    let repo_path = env::temp_dir().join("rustic_git_basic_example");
 
     // Clean up any previous run
-    if Path::new(repo_path).exists() {
-        fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
+    if repo_path.exists() {
+        fs::remove_dir_all(&repo_path).expect("Failed to clean up previous example");
     }
 
-    println!("Initializing new repository at: {}", repo_path);
+    println!("Initializing new repository at: {}", repo_path.display());
 
     // Initialize a new repository
-    let repo = Repository::init(repo_path, false)?;
+    let repo = Repository::init(&repo_path, false)?;
     println!("Repository initialized successfully\n");
 
     // Create some example files
     println!("Creating example files...");
-    fs::create_dir_all(format!("{}/src", repo_path))?;
+    fs::create_dir_all(repo_path.join("src"))?;
 
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         "# My Awesome Project\n\nThis is a demo project for rustic-git!\n",
     )?;
 
     fs::write(
-        format!("{}/src/main.rs", repo_path),
+        repo_path.join("src/main.rs"),
         r#"fn main() {
     println!("Hello from rustic-git example!");
 }
@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     )?;
 
     fs::write(
-        format!("{}/src/lib.rs", repo_path),
+        repo_path.join("src/lib.rs"),
         "// Library code goes here\npub fn hello() -> &'static str {\n    \"Hello, World!\"\n}\n",
     )?;
 
@@ -125,7 +125,7 @@ fn main() -> Result<()> {
 
     // Clean up
     println!("Cleaning up example repository...");
-    fs::remove_dir_all(repo_path)?;
+    fs::remove_dir_all(&repo_path)?;
     println!("Example completed successfully!");
 
     Ok(())

@@ -11,4 +11,4 @@ keywords = ["git", "vcs", "repository", "cli", "rust"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde"] }

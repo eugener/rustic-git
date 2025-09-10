@@ -93,6 +93,28 @@ impl Repository {
     pub fn repo_path(&self) -> &Path {
         &self.repo_path
     }
+
+    /// Get a configuration manager for this repository
+    ///
+    /// Returns a `RepoConfig` instance that can be used to get and set
+    /// git configuration values for this repository.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rustic_git::Repository;
+    ///
+    /// let repo = Repository::init("/tmp/test", false)?;
+    /// repo.config().set_user("John Doe", "john@example.com")?;
+    ///
+    /// let (name, email) = repo.config().get_user()?;
+    /// assert_eq!(name, "John Doe");
+    /// assert_eq!(email, "john@example.com");
+    /// # Ok::<(), rustic_git::GitError>(())
+    /// ```
+    pub fn config(&self) -> crate::commands::RepoConfig<'_> {
+        crate::commands::RepoConfig::new(self)
+    }
 }
 
 #[cfg(test)]

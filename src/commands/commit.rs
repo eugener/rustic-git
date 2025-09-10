@@ -109,8 +109,6 @@ mod tests {
     use std::path::Path;
 
     fn create_test_repo(path: &str) -> Repository {
-        use crate::utils::git;
-
         // Clean up if exists
         if Path::new(path).exists() {
             fs::remove_dir_all(path).unwrap();
@@ -119,13 +117,9 @@ mod tests {
         let repo = Repository::init(path, false).unwrap();
 
         // Configure git user for this repository to enable commits
-        let repo_path = Path::new(path);
-        git(&["config", "user.name", "Test User"], Some(repo_path)).unwrap();
-        git(
-            &["config", "user.email", "test@example.com"],
-            Some(repo_path),
-        )
-        .unwrap();
+        repo.config()
+            .set_user("Test User", "test@example.com")
+            .unwrap();
 
         repo
     }
@@ -252,21 +246,13 @@ mod tests {
 
     #[test]
     fn test_git_config_is_set_in_test_repo() {
-        use crate::utils::git;
-
         let test_path = "/tmp/test_git_config_repo";
-        let _repo = create_test_repo(test_path);
-        let repo_path = Path::new(test_path);
+        let repo = create_test_repo(test_path);
 
-        // Verify git user.name is set
-        let name_result = git(&["config", "user.name"], Some(repo_path));
-        assert!(name_result.is_ok(), "git user.name should be configured");
-        assert_eq!(name_result.unwrap().trim(), "Test User");
-
-        // Verify git user.email is set
-        let email_result = git(&["config", "user.email"], Some(repo_path));
-        assert!(email_result.is_ok(), "git user.email should be configured");
-        assert_eq!(email_result.unwrap().trim(), "test@example.com");
+        // Verify git user configuration is set using our config API
+        let (name, email) = repo.config().get_user().unwrap();
+        assert_eq!(name, "Test User");
+        assert_eq!(email, "test@example.com");
 
         // Clean up
         fs::remove_dir_all(test_path).unwrap();

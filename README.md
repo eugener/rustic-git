@@ -17,11 +17,12 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Branch management** (create, delete, checkout, list)
 - ✅ **Commit history & log operations** with multi-level API
 - ✅ **Advanced commit querying** with filtering and analysis
+- ✅ **Repository configuration management** with type-safe API
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (101+ tests)
+- ✅ Comprehensive test coverage (106+ tests)
 
 ## Installation
 
@@ -74,6 +75,9 @@ fn main() -> Result<()> {
     repo.add(&["file1.txt", "file2.txt"])?;
     // Or stage all changes
     repo.add_all()?;
+
+    // Configure git user for commits
+    repo.config().set_user("Your Name", "your.email@example.com")?;
 
     // Create a commit
     let hash = repo.commit("Add new features")?;
@@ -258,6 +262,42 @@ Add all tracked files that have been modified (equivalent to `git add -u`).
 ```rust
 repo.add_update()?;
 ```
+
+### Configuration Operations
+
+#### `Repository::config() -> RepoConfig`
+
+Get a configuration manager for the repository to set and get git configuration values.
+
+```rust
+// Configure git user (convenience method)
+repo.config().set_user("Your Name", "your.email@example.com")?;
+
+// Get user configuration
+let (name, email) = repo.config().get_user()?;
+println!("User: {} <{}>", name, email);
+
+// Set any git configuration value
+repo.config().set("core.autocrlf", "false")?;
+repo.config().set("pull.rebase", "true")?;
+
+// Get any git configuration value
+let autocrlf = repo.config().get("core.autocrlf")?;
+println!("autocrlf setting: {}", autocrlf);
+
+// Remove a configuration value
+repo.config().unset("user.signingkey")?;
+```
+
+#### Configuration Methods
+
+- **`set_user(name, email)`** - Convenience method to set both user.name and user.email
+- **`get_user()`** - Get user configuration as a tuple (name, email)
+- **`set(key, value)`** - Set any git configuration value
+- **`get(key)`** - Get any git configuration value as String
+- **`unset(key)`** - Remove a git configuration value
+
+All configuration operations are scoped to the specific repository.
 
 ### Commit Operations
 
@@ -675,6 +715,13 @@ fn main() -> rustic_git::Result<()> {
     // Create a new repository
     let repo = Repository::init("./my-project", false)?;
 
+    // Configure git user for commits
+    repo.config().set_user("Your Name", "your.email@example.com")?;
+    
+    // Set some additional repository settings
+    repo.config().set("core.autocrlf", "false")?;
+    repo.config().set("pull.rebase", "true")?;
+
     // Create some files
     fs::write("./my-project/README.md", "# My Project")?;
     fs::create_dir_all("./my-project/src")?;
@@ -748,6 +795,14 @@ fn main() -> rustic_git::Result<()> {
     assert!(status.is_clean());
     println!("Repository is clean!");
 
+    // Display final configuration
+    let (user_name, user_email) = repo.config().get_user()?;
+    println!("Repository configured for: {} <{}>", user_name, user_email);
+    
+    let autocrlf = repo.config().get("core.autocrlf")?;
+    let rebase_setting = repo.config().get("pull.rebase")?;
+    println!("Settings: autocrlf={}, pull.rebase={}", autocrlf, rebase_setting);
+
     Ok(())
 }
 ```
@@ -777,6 +832,9 @@ cargo run --example commit_workflows
 # Branch operations (create, delete, checkout, list)
 cargo run --example branch_operations
 
+# Repository configuration management
+cargo run --example config_operations
+
 # Commit history and log operations with advanced querying
 cargo run --example commit_history
 
@@ -792,6 +850,7 @@ cargo run --example error_handling
 - **`staging_operations.rs`** - Shows all staging methods (add, add_all, add_update) with before/after status comparisons
 - **`commit_workflows.rs`** - Demonstrates commit operations and Hash type methods, including custom authors and hash management
 - **`branch_operations.rs`** - Complete branch management demonstration: create, checkout, delete branches, and BranchList filtering
+- **`config_operations.rs`** - Repository configuration management demonstration: user setup, configuration values, and repository-scoped settings
 - **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
@@ -852,6 +911,7 @@ cargo run --example status_checking
 cargo run --example staging_operations
 cargo run --example commit_workflows
 cargo run --example branch_operations
+cargo run --example config_operations
 cargo run --example commit_history
 cargo run --example error_handling
 ```

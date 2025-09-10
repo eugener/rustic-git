@@ -6,7 +6,7 @@ mod utils;
 
 pub use commands::{
     Author, Branch, BranchList, BranchType, Commit, CommitDetails, CommitLog, CommitMessage,
-    FileEntry, GitStatus, IndexStatus, LogOptions, WorktreeStatus,
+    FileEntry, GitStatus, IndexStatus, LogOptions, RepoConfig, WorktreeStatus,
 };
 pub use error::{GitError, Result};
 pub use repository::Repository;

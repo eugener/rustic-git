@@ -2,6 +2,14 @@
 
 A Rust library for Git repository operations with a clean, type-safe API.
 
+![Build](https://github.com/eugener/rustic-git/actions/workflows/ci.yml/badge.svg)
+[![Crates.io](https://img.shields.io/crates/v/rustic-git.svg)](https://crates.io/crates/rustic-git)
+[![Downloads](https://img.shields.io/crates/d/rustic-git.svg)](https://crates.io/crates/rustic-git)
+[![Docs.rs](https://docs.rs/rustic-git/badge.svg)](https://docs.rs/rustic-git)
+![Rust Version](https://img.shields.io/badge/rustc-1.89+-blue.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![dependency status](https://deps.rs/repo/github/eugener/rustic-git/status.svg)](https://deps.rs/repo/github/eugener/rustic-git)
+
 ## Overview
 
 Rustic Git provides a simple, ergonomic interface for common Git operations. It follows a repository-centric design where you create a `Repository` instance and call methods on it to perform Git operations.
@@ -717,7 +725,7 @@ fn main() -> rustic_git::Result<()> {
 
     // Configure git user for commits
     repo.config().set_user("Your Name", "your.email@example.com")?;
-    
+
     // Set some additional repository settings
     repo.config().set("core.autocrlf", "false")?;
     repo.config().set("pull.rebase", "true")?;
@@ -798,7 +806,7 @@ fn main() -> rustic_git::Result<()> {
     // Display final configuration
     let (user_name, user_email) = repo.config().get_user()?;
     println!("Repository configured for: {} <{}>", user_name, user_email);
-    
+
     let autocrlf = repo.config().get("core.autocrlf")?;
     let rebase_setting = repo.config().get("pull.rebase")?;
     println!("Settings: autocrlf={}, pull.rebase={}", autocrlf, rebase_setting);

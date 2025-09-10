@@ -1,6 +1,6 @@
 [package]
 name = "rustic-git"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "MIT"
 description = "A Rustic Git - clean type-safe API over git cli"
@@ -11,4 +11,4 @@ keywords = ["git", "vcs", "repository", "cli", "rust"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde"] }

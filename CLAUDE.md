@@ -27,6 +27,12 @@
   - API methods: staged_files(), unstaged_files(), untracked_entries(), files_with_index_status(), files_with_worktree_status()
 - **Staging functionality**: Repository::add(paths), Repository::add_all(), Repository::add_update()
 - **Commit functionality**: Repository::commit(message), Repository::commit_with_author(message, author) - return Hash of created commit
+- **Configuration functionality**: Repository::config() -> RepoConfig - manage git configuration values
+  - RepoConfig::set_user(name, email) -> Result<()> - convenience method for user.name and user.email
+  - RepoConfig::get_user() -> Result<(String, String)> - get user configuration as tuple
+  - RepoConfig::set(key, value) -> Result<()> - set any git configuration value
+  - RepoConfig::get(key) -> Result<String> - get any git configuration value  
+  - RepoConfig::unset(key) -> Result<()> - remove git configuration value
 - **Branch functionality**: Complete branch operations with type-safe API
   - Repository::branches() -> Result<BranchList> - list all branches with comprehensive filtering
   - Repository::current_branch() -> Result<Option<Branch>> - get currently checked out branch
@@ -50,10 +56,10 @@
   - Author struct: name, email, timestamp with Display implementation
   - CommitMessage: subject and optional body parsing
   - CommitDetails: full commit info including file changes and diff stats
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs)
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs (in src/commands/)
-- **Testing**: 101+ tests covering all functionality with comprehensive edge cases
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs (in src/commands/)
+- **Testing**: 106+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 

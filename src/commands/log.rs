@@ -810,6 +810,11 @@ mod tests {
         // Create a repository with some commits
         let repo = Repository::init(test_path, false).unwrap();
 
+        // Configure git user for this repository to enable commits
+        repo.config()
+            .set_user("Test User", "test@example.com")
+            .unwrap();
+
         // Create initial commit
         std::fs::write(format!("{}/test1.txt", test_path), "content1").unwrap();
         repo.add(&["test1.txt"]).unwrap();

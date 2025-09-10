@@ -29,18 +29,18 @@ impl<'a> RepoConfig<'a> {
     ///
     /// ```rust
     /// use rustic_git::Repository;
-    /// use std::fs;
+    /// use std::{env, fs};
     ///
-    /// let test_path = "/tmp/config_set_user_test";
-    /// if std::path::Path::new(test_path).exists() {
-    ///     fs::remove_dir_all(test_path).unwrap();
+    /// let test_path = env::temp_dir().join("config_set_user_test");
+    /// if test_path.exists() {
+    ///     fs::remove_dir_all(&test_path).unwrap();
     /// }
     ///
-    /// let repo = Repository::init(test_path, false)?;
+    /// let repo = Repository::init(&test_path, false)?;
     /// repo.config().set_user("John Doe", "john@example.com")?;
     ///
     /// // Clean up
-    /// fs::remove_dir_all(test_path).unwrap();
+    /// fs::remove_dir_all(&test_path).unwrap();
     /// # Ok::<(), rustic_git::GitError>(())
     /// ```
     pub fn set_user(&self, name: &str, email: &str) -> Result<()> {
@@ -74,19 +74,19 @@ impl<'a> RepoConfig<'a> {
     ///
     /// ```rust
     /// use rustic_git::Repository;
-    /// use std::fs;
+    /// use std::{env, fs};
     ///
-    /// let test_path = "/tmp/config_set_test";
-    /// if std::path::Path::new(test_path).exists() {
-    ///     fs::remove_dir_all(test_path).unwrap();
+    /// let test_path = env::temp_dir().join("config_set_test");
+    /// if test_path.exists() {
+    ///     fs::remove_dir_all(&test_path).unwrap();
     /// }
     ///
-    /// let repo = Repository::init(test_path, false)?;
+    /// let repo = Repository::init(&test_path, false)?;
     /// repo.config().set("core.autocrlf", "false")?;
     /// repo.config().set("user.name", "Jane Doe")?;
     ///
     /// // Clean up
-    /// fs::remove_dir_all(test_path).unwrap();
+    /// fs::remove_dir_all(&test_path).unwrap();
     /// # Ok::<(), rustic_git::GitError>(())
     /// ```
     pub fn set(&self, key: &str, value: &str) -> Result<()> {
@@ -108,20 +108,20 @@ impl<'a> RepoConfig<'a> {
     ///
     /// ```rust
     /// use rustic_git::Repository;
-    /// use std::fs;
+    /// use std::{env, fs};
     ///
-    /// let test_path = "/tmp/config_get_test";
-    /// if std::path::Path::new(test_path).exists() {
-    ///     fs::remove_dir_all(test_path).unwrap();
+    /// let test_path = env::temp_dir().join("config_get_test");
+    /// if test_path.exists() {
+    ///     fs::remove_dir_all(&test_path).unwrap();
     /// }
     ///
-    /// let repo = Repository::init(test_path, false)?;
+    /// let repo = Repository::init(&test_path, false)?;
     /// repo.config().set("user.name", "Jane Doe")?;
     /// let name = repo.config().get("user.name")?;
     /// assert_eq!(name, "Jane Doe");
     ///
     /// // Clean up
-    /// fs::remove_dir_all(test_path).unwrap();
+    /// fs::remove_dir_all(&test_path).unwrap();
     /// # Ok::<(), rustic_git::GitError>(())
     /// ```
     pub fn get(&self, key: &str) -> Result<String> {
@@ -138,19 +138,19 @@ impl<'a> RepoConfig<'a> {
     ///
     /// ```rust
     /// use rustic_git::Repository;
-    /// use std::fs;
+    /// use std::{env, fs};
     ///
-    /// let test_path = "/tmp/config_unset_test";
-    /// if std::path::Path::new(test_path).exists() {
-    ///     fs::remove_dir_all(test_path).unwrap();
+    /// let test_path = env::temp_dir().join("config_unset_test");
+    /// if test_path.exists() {
+    ///     fs::remove_dir_all(&test_path).unwrap();
     /// }
     ///
-    /// let repo = Repository::init(test_path, false)?;
+    /// let repo = Repository::init(&test_path, false)?;
     /// repo.config().set("test.value", "temporary")?;
     /// repo.config().unset("test.value")?;
     ///
     /// // Clean up
-    /// fs::remove_dir_all(test_path).unwrap();
+    /// fs::remove_dir_all(&test_path).unwrap();
     /// # Ok::<(), rustic_git::GitError>(())
     /// ```
     pub fn unset(&self, key: &str) -> Result<()> {
@@ -162,19 +162,19 @@ impl<'a> RepoConfig<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::fs;
-    use std::path::Path;
 
     #[test]
     fn test_config_set_and_get_user() {
-        let test_path = "/tmp/test_config_user";
+        let test_path = env::temp_dir().join("test_config_user");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Set user configuration
         repo.config()
@@ -187,19 +187,19 @@ mod tests {
         assert_eq!(email, "test@example.com");
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_config_set_and_get_generic() {
-        let test_path = "/tmp/test_config_generic";
+        let test_path = env::temp_dir().join("test_config_generic");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Set generic configuration
         repo.config().set("core.autocrlf", "false").unwrap();
@@ -213,19 +213,19 @@ mod tests {
         assert_eq!(name, "Generic User");
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_config_unset() {
-        let test_path = "/tmp/test_config_unset";
+        let test_path = env::temp_dir().join("test_config_unset");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Set a test value
         repo.config().set("test.temporary", "value").unwrap();
@@ -240,38 +240,38 @@ mod tests {
         assert!(result.is_err());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_config_get_nonexistent_key() {
-        let test_path = "/tmp/test_config_nonexistent";
+        let test_path = env::temp_dir().join("test_config_nonexistent");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Try to get a non-existent key
         let result = repo.config().get("nonexistent.key");
         assert!(result.is_err());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_config_integration_with_commit() {
-        let test_path = "/tmp/test_config_commit_integration";
+        let test_path = env::temp_dir().join("test_config_commit_integration");
 
         // Clean up if exists
-        if Path::new(test_path).exists() {
-            fs::remove_dir_all(test_path).unwrap();
+        if test_path.exists() {
+            fs::remove_dir_all(&test_path).unwrap();
         }
 
-        let repo = Repository::init(test_path, false).unwrap();
+        let repo = Repository::init(&test_path, false).unwrap();
 
         // Configure user for commits
         repo.config()
@@ -279,7 +279,7 @@ mod tests {
             .unwrap();
 
         // Create a file and commit
-        std::fs::write(format!("{}/test.txt", test_path), "test content").unwrap();
+        std::fs::write(test_path.join("test.txt"), "test content").unwrap();
         repo.add(&["test.txt"]).unwrap();
         let hash = repo.commit("Test commit with config API").unwrap();
 
@@ -287,6 +287,6 @@ mod tests {
         assert!(!hash.as_str().is_empty());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 }

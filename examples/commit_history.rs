@@ -1,26 +1,25 @@
 use chrono::{Duration, Utc};
 use rustic_git::{LogOptions, Repository, Result};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
-    let test_path = "/tmp/rustic_git_commit_history_example";
+    let test_path = env::temp_dir().join("rustic_git_commit_history_example");
 
     // Clean up if exists
-    if Path::new(test_path).exists() {
-        fs::remove_dir_all(test_path).unwrap();
+    if test_path.exists() {
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     // Create a test repository
-    let repo = Repository::init(test_path, false)?;
-    println!("Created repository at: {}", test_path);
+    let repo = Repository::init(&test_path, false)?;
+    println!("Created repository at: {}", test_path.display());
 
     // Create several commits to build history
     println!("\n=== Building Commit History ===");
 
     // First commit
     fs::write(
-        format!("{}/README.md", test_path),
+        test_path.join("README.md"),
         "# Commit History Demo\n\nA demonstration of rustic-git log functionality.",
     )
     .unwrap();
@@ -29,9 +28,9 @@ fn main() -> Result<()> {
     println!("Created commit 1: {} - Initial commit", commit1.short());
 
     // Second commit
-    fs::create_dir_all(format!("{}/src", test_path)).unwrap();
+    fs::create_dir_all(test_path.join("src")).unwrap();
     fs::write(
-        format!("{}/src/main.rs", test_path),
+        test_path.join("src/main.rs"),
         "fn main() {\n    println!(\"Hello, world!\");\n}",
     )
     .unwrap();
@@ -41,7 +40,7 @@ fn main() -> Result<()> {
 
     // Third commit
     fs::write(
-        format!("{}/src/lib.rs", test_path),
+        test_path.join("src/lib.rs"),
         "pub fn greet(name: &str) -> String {\n    format!(\"Hello, {}!\", name)\n}",
     )
     .unwrap();
@@ -51,7 +50,7 @@ fn main() -> Result<()> {
 
     // Fourth commit
     fs::write(
-        format!("{}/Cargo.toml", test_path),
+        test_path.join("Cargo.toml"),
         "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2021\"",
     )
     .unwrap();
@@ -61,7 +60,7 @@ fn main() -> Result<()> {
 
     // Fifth commit - bug fix
     fs::write(
-        format!("{}/src/main.rs", test_path),
+        test_path.join("src/main.rs"),
         "fn main() {\n    println!(\"Hello, rustic-git!\");\n}",
     )
     .unwrap();
@@ -70,7 +69,7 @@ fn main() -> Result<()> {
     println!("Created commit 5: {} - Fix greeting", commit5.short());
 
     // Sixth commit - documentation
-    fs::write(format!("{}/README.md", test_path), "# Commit History Demo\n\nA demonstration of rustic-git log functionality.\n\n## Features\n\n- Greeting functionality\n- Command line interface\n").unwrap();
+    fs::write(test_path.join("README.md"), "# Commit History Demo\n\nA demonstration of rustic-git log functionality.\n\n## Features\n\n- Greeting functionality\n- Command line interface\n").unwrap();
     repo.add(&["README.md"])?;
     let commit6 = repo.commit("Update README with features section")?;
     println!("Created commit 6: {} - Update README", commit6.short());
@@ -292,7 +291,7 @@ fn main() -> Result<()> {
     println!("\n=== Summary ===");
 
     println!("Commit history demonstration completed!");
-    println!("  Repository: {}", test_path);
+    println!("  Repository: {}", test_path.display());
     println!("  Total commits analyzed: {}", all_commits.len());
     println!("  Hash examples:");
     for commit in all_commits.iter().take(3) {
@@ -301,7 +300,7 @@ fn main() -> Result<()> {
     }
 
     // Clean up
-    fs::remove_dir_all(test_path).unwrap();
+    fs::remove_dir_all(&test_path).unwrap();
     println!("\nCleaned up test repository");
 
     Ok(())

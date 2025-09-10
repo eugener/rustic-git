@@ -9,37 +9,36 @@
 //! Run with: cargo run --example staging_operations
 
 use rustic_git::{IndexStatus, Repository, Result, WorktreeStatus};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
     println!("Rustic Git - Staging Operations Example\n");
 
-    let repo_path = "/tmp/rustic_git_staging_example";
+    let repo_path = env::temp_dir().join("rustic_git_staging_example");
 
     // Clean up any previous run
-    if Path::new(repo_path).exists() {
-        fs::remove_dir_all(repo_path).expect("Failed to clean up previous example");
+    if repo_path.exists() {
+        fs::remove_dir_all(&repo_path).expect("Failed to clean up previous example");
     }
 
     // Initialize repository and create initial commit
     println!("Setting up repository with initial files...");
-    let repo = Repository::init(repo_path, false)?;
+    let repo = Repository::init(&repo_path, false)?;
 
     // Create initial files
-    fs::create_dir_all(format!("{}/src", repo_path))?;
-    fs::create_dir_all(format!("{}/docs", repo_path))?;
+    fs::create_dir_all(repo_path.join("src"))?;
+    fs::create_dir_all(repo_path.join("docs"))?;
 
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         "# Staging Demo\nOriginal content",
     )?;
     fs::write(
-        format!("{}/src/main.rs", repo_path),
+        repo_path.join("src/main.rs"),
         "fn main() { println!(\"v1\"); }",
     )?;
     fs::write(
-        format!("{}/src/lib.rs", repo_path),
+        repo_path.join("src/lib.rs"),
         "pub fn version() -> &'static str { \"1.0\" }",
     )?;
 
@@ -52,17 +51,17 @@ fn main() -> Result<()> {
 
     // Create some new files and modify existing ones
     println!("Creating new files and modifying existing ones...");
-    fs::write(format!("{}/new_file1.txt", repo_path), "New file 1 content")?;
-    fs::write(format!("{}/new_file2.txt", repo_path), "New file 2 content")?;
-    fs::write(format!("{}/docs/guide.md", repo_path), "# User Guide")?;
+    fs::write(repo_path.join("new_file1.txt"), "New file 1 content")?;
+    fs::write(repo_path.join("new_file2.txt"), "New file 2 content")?;
+    fs::write(repo_path.join("docs/guide.md"), "# User Guide")?;
 
     // Modify existing files
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         "# Staging Demo\nUpdated content!",
     )?;
     fs::write(
-        format!("{}/src/main.rs", repo_path),
+        repo_path.join("src/main.rs"),
         "fn main() { println!(\"v2 - updated!\"); }",
     )?;
 
@@ -117,13 +116,13 @@ fn main() -> Result<()> {
     // Create more files to demonstrate add_all()
     println!("Creating additional files for add_all() demo...");
     fs::write(
-        format!("{}/config.toml", repo_path),
+        repo_path.join("config.toml"),
         "[package]\nname = \"example\"",
     )?;
-    fs::write(format!("{}/src/utils.rs", repo_path), "pub fn helper() {}")?;
-    fs::create_dir_all(format!("{}/tests", repo_path))?;
+    fs::write(repo_path.join("src/utils.rs"), "pub fn helper() {}")?;
+    fs::create_dir_all(repo_path.join("tests"))?;
     fs::write(
-        format!("{}/tests/integration.rs", repo_path),
+        repo_path.join("tests/integration.rs"),
         "#[test]\nfn test_basic() {}",
     )?;
 
@@ -155,23 +154,20 @@ fn main() -> Result<()> {
     println!("Setting up files for add_update() demonstration...");
 
     // Create new untracked files (these should NOT be staged by add_update)
-    fs::write(format!("{}/untracked1.txt", repo_path), "This is untracked")?;
-    fs::write(
-        format!("{}/untracked2.txt", repo_path),
-        "Another untracked file",
-    )?;
+    fs::write(repo_path.join("untracked1.txt"), "This is untracked")?;
+    fs::write(repo_path.join("untracked2.txt"), "Another untracked file")?;
 
     // Modify existing tracked files (these SHOULD be staged by add_update)
     fs::write(
-        format!("{}/README.md", repo_path),
+        repo_path.join("README.md"),
         "# Staging Demo\nContent updated again for add_update demo!",
     )?;
     fs::write(
-        format!("{}/src/lib.rs", repo_path),
+        repo_path.join("src/lib.rs"),
         "pub fn version() -> &'static str { \"2.0\" }",
     )?;
     fs::write(
-        format!("{}/config.toml", repo_path),
+        repo_path.join("config.toml"),
         "[package]\nname = \"example\"\nversion = \"0.2.0\"",
     )?;
 
@@ -244,7 +240,7 @@ fn main() -> Result<()> {
 
     // Clean up
     println!("\nCleaning up example repository...");
-    fs::remove_dir_all(repo_path)?;
+    fs::remove_dir_all(&repo_path)?;
     println!("Staging operations example completed!");
 
     Ok(())

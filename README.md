@@ -854,7 +854,7 @@ cargo run --example error_handling
 - **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
-All examples use temporary directories in `/tmp/` and include automatic cleanup for safe execution.
+All examples use OS-appropriate temporary directories and include automatic cleanup for safe execution.
 
 ## Testing
 
@@ -864,7 +864,7 @@ Run the test suite:
 cargo test
 ```
 
-All tests create temporary repositories in `/tmp/` and clean up after themselves.
+All tests create temporary repositories in OS-appropriate temporary directories and clean up after themselves.
 
 ## Contributing
 

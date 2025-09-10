@@ -60,31 +60,32 @@ impl Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::fs;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
-    fn create_test_repo(path: &str) -> Repository {
+    fn create_test_repo(path: &PathBuf) -> Repository {
         // Clean up if exists
-        if Path::new(path).exists() {
+        if path.exists() {
             fs::remove_dir_all(path).unwrap();
         }
 
         Repository::init(path, false).unwrap()
     }
 
-    fn create_test_file(repo_path: &str, filename: &str, content: &str) {
-        let file_path = format!("{}/{}", repo_path, filename);
+    fn create_test_file(repo_path: &Path, filename: &str, content: &str) {
+        let file_path = repo_path.join(filename);
         fs::write(file_path, content).unwrap();
     }
 
     #[test]
     fn test_add_specific_files() {
-        let test_path = "/tmp/test_add_repo";
-        let repo = create_test_repo(test_path);
+        let test_path = env::temp_dir().join("test_add_repo");
+        let repo = create_test_repo(&test_path);
 
         // Create some test files
-        create_test_file(test_path, "file1.txt", "content 1");
-        create_test_file(test_path, "file2.txt", "content 2");
+        create_test_file(&test_path, "file1.txt", "content 1");
+        create_test_file(&test_path, "file2.txt", "content 2");
 
         // Add specific files
         let result = repo.add(&["file1.txt"]);
@@ -100,18 +101,18 @@ mod tests {
         assert!(added_files.contains(&"file1.txt"));
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_add_multiple_files() {
-        let test_path = "/tmp/test_add_multiple_repo";
-        let repo = create_test_repo(test_path);
+        let test_path = env::temp_dir().join("test_add_multiple_repo");
+        let repo = create_test_repo(&test_path);
 
         // Create test files
-        create_test_file(test_path, "file1.txt", "content 1");
-        create_test_file(test_path, "file2.txt", "content 2");
-        create_test_file(test_path, "file3.txt", "content 3");
+        create_test_file(&test_path, "file1.txt", "content 1");
+        create_test_file(&test_path, "file2.txt", "content 2");
+        create_test_file(&test_path, "file3.txt", "content 3");
 
         // Add multiple files
         let result = repo.add(&["file1.txt", "file2.txt"]);
@@ -129,19 +130,19 @@ mod tests {
         assert_eq!(added_files.len(), 2);
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_add_all() {
-        let test_path = "/tmp/test_add_all_repo";
-        let repo = create_test_repo(test_path);
+        let test_path = env::temp_dir().join("test_add_all_repo");
+        let repo = create_test_repo(&test_path);
 
         // Create test files
-        create_test_file(test_path, "file1.txt", "content 1");
-        create_test_file(test_path, "file2.txt", "content 2");
-        fs::create_dir(format!("{}/subdir", test_path)).unwrap();
-        create_test_file(test_path, "subdir/file3.txt", "content 3");
+        create_test_file(&test_path, "file1.txt", "content 1");
+        create_test_file(&test_path, "file2.txt", "content 2");
+        fs::create_dir(test_path.join("subdir")).unwrap();
+        create_test_file(&test_path, "subdir/file3.txt", "content 3");
 
         // Add all files
         let result = repo.add_all();
@@ -159,32 +160,32 @@ mod tests {
         assert!(added_files.contains(&"subdir/file3.txt"));
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_add_empty_paths() {
-        let test_path = "/tmp/test_add_empty_repo";
-        let repo = create_test_repo(test_path);
+        let test_path = env::temp_dir().join("test_add_empty_repo");
+        let repo = create_test_repo(&test_path);
 
         // Adding empty paths should succeed without error
         let result = repo.add::<&str>(&[]);
         assert!(result.is_ok());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     #[test]
     fn test_add_nonexistent_file() {
-        let test_path = "/tmp/test_add_nonexistent_repo";
-        let repo = create_test_repo(test_path);
+        let test_path = env::temp_dir().join("test_add_nonexistent_repo");
+        let repo = create_test_repo(&test_path);
 
         // Adding non-existent file should fail
         let result = repo.add(&["nonexistent.txt"]);
         assert!(result.is_err());
 
         // Clean up
-        fs::remove_dir_all(test_path).unwrap();
+        fs::remove_dir_all(&test_path).unwrap();
     }
 }

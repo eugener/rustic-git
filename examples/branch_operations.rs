@@ -1,25 +1,20 @@
 use rustic_git::{Repository, Result};
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
 
 fn main() -> Result<()> {
-    let test_path = "/tmp/rustic_git_branch_example";
+    let test_path = env::temp_dir().join("rustic_git_branch_example");
 
     // Clean up if exists
-    if Path::new(test_path).exists() {
-        fs::remove_dir_all(test_path).unwrap();
+    if test_path.exists() {
+        fs::remove_dir_all(&test_path).unwrap();
     }
 
     // Create a test repository
-    let repo = Repository::init(test_path, false)?;
-    println!("Created repository at: {}", test_path);
+    let repo = Repository::init(&test_path, false)?;
+    println!("Created repository at: {}", test_path.display());
 
     // Create initial commit so we have a valid HEAD
-    fs::write(
-        format!("{}/README.md", test_path),
-        "# Branch Operations Demo\n",
-    )
-    .unwrap();
+    fs::write(test_path.join("README.md"), "# Branch Operations Demo\n").unwrap();
     repo.add(&["README.md"])?;
     repo.commit("Initial commit")?;
     println!("Created initial commit");
@@ -61,7 +56,7 @@ fn main() -> Result<()> {
     println!("Created and checked out: {}", dev_branch.name);
 
     // Make a commit on the new branch
-    fs::write(format!("{}/feature.txt", test_path), "New feature code\n").unwrap();
+    fs::write(test_path.join("feature.txt"), "New feature code\n").unwrap();
     repo.add(&["feature.txt"])?;
     repo.commit("Add new feature")?;
     println!("Made commit on develop branch");
@@ -139,7 +134,7 @@ fn main() -> Result<()> {
     println!("\nFinal branch count: {}", final_branches.len());
 
     // Clean up
-    fs::remove_dir_all(test_path).unwrap();
+    fs::remove_dir_all(&test_path).unwrap();
     println!("\nCleaned up test repository");
 
     Ok(())

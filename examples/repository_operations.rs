@@ -9,33 +9,36 @@
 //! Run with: cargo run --example repository_operations
 
 use rustic_git::{GitError, Repository, Result};
+use std::env;
 use std::fs;
-use std::path::Path;
 
 fn main() -> Result<()> {
     println!("Rustic Git - Repository Operations Example\n");
 
-    let base_path = "/tmp/rustic_git_repo_example";
-    let regular_repo_path = format!("{}/regular", base_path);
-    let bare_repo_path = format!("{}/bare", base_path);
-    let nonexistent_path = format!("{}/nonexistent", base_path);
+    let base_path = env::temp_dir().join("rustic_git_repo_example");
+    let regular_repo_path = base_path.join("regular");
+    let bare_repo_path = base_path.join("bare");
+    let nonexistent_path = base_path.join("nonexistent");
 
     // Clean up any previous runs
-    if Path::new(base_path).exists() {
-        fs::remove_dir_all(base_path).expect("Failed to clean up previous example");
+    if base_path.exists() {
+        fs::remove_dir_all(&base_path).expect("Failed to clean up previous example");
     }
-    fs::create_dir_all(base_path)?;
+    fs::create_dir_all(&base_path)?;
 
     println!("=== Repository Initialization ===\n");
 
     // 1. Initialize a regular repository
     println!("Initializing regular repository...");
     let regular_repo = Repository::init(&regular_repo_path, false)?;
-    println!("Regular repository created at: {}", regular_repo_path);
+    println!(
+        "Regular repository created at: {}",
+        regular_repo_path.display()
+    );
     println!("   Repository path: {:?}", regular_repo.repo_path());
 
     // Verify it's a git repo by checking for .git directory
-    if Path::new(&format!("{}/.git", regular_repo_path)).exists() {
+    if regular_repo_path.join(".git").exists() {
         println!("   .git directory found");
     }
     println!();
@@ -43,14 +46,14 @@ fn main() -> Result<()> {
     // 2. Initialize a bare repository
     println!("Initializing bare repository...");
     let bare_repo = Repository::init(&bare_repo_path, true)?;
-    println!("Bare repository created at: {}", bare_repo_path);
+    println!("Bare repository created at: {}", bare_repo_path.display());
     println!("   Repository path: {:?}", bare_repo.repo_path());
 
     // Verify bare repo structure (has HEAD, objects, etc. directly)
-    if Path::new(&format!("{}/HEAD", bare_repo_path)).exists() {
+    if bare_repo_path.join("HEAD").exists() {
         println!("   HEAD file found (bare repository structure)");
     }
-    if Path::new(&format!("{}/objects", bare_repo_path)).exists() {
+    if bare_repo_path.join("objects").exists() {
         println!("   objects directory found");
     }
     println!();
@@ -116,7 +119,7 @@ fn main() -> Result<()> {
     println!();
 
     // 6. Try to open a regular file as a repository
-    let fake_repo_path = format!("{}/fake.txt", base_path);
+    let fake_repo_path = base_path.join("fake.txt");
     fs::write(&fake_repo_path, "This is not a git repository")?;
 
     println!("Attempting to open regular file as repository...");
@@ -178,7 +181,7 @@ fn main() -> Result<()> {
 
     // Clean up
     println!("Cleaning up example repositories...");
-    fs::remove_dir_all(base_path)?;
+    fs::remove_dir_all(&base_path)?;
     println!("Repository operations example completed!");
 
     Ok(())

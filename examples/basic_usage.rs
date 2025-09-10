@@ -62,12 +62,12 @@ fn main() -> Result<()> {
         println!("   Repository is clean (no changes)");
     } else {
         println!("   Repository has changes:");
-        println!("   Modified files: {}", status.modified_files().len());
-        println!("   Untracked files: {}", status.untracked_files().len());
+        println!("   Unstaged files: {}", status.unstaged_files().count());
+        println!("   Untracked files: {}", status.untracked_entries().count());
 
         // Show untracked files
-        for filename in status.untracked_files() {
-            println!("      - {}", filename);
+        for entry in status.untracked_entries() {
+            println!("      - {}", entry.path.display());
         }
     }
     println!();
@@ -91,10 +91,15 @@ fn main() -> Result<()> {
     } else {
         println!(
             "   Files staged for commit: {}",
-            status_after_staging.files.len()
+            status_after_staging.entries.len()
         );
-        for (file_status, filename) in &status_after_staging.files {
-            println!("      {:?}: {}", file_status, filename);
+        for entry in &status_after_staging.entries {
+            println!(
+                "      Index {:?}, Worktree {:?}: {}",
+                entry.index_status,
+                entry.worktree_status,
+                entry.path.display()
+            );
         }
     }
     println!();

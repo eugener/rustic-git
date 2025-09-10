@@ -22,12 +22,7 @@ impl Repository {
 
         // Check if there are staged changes
         let status = self.status()?;
-        let has_staged = status.files.iter().any(|(file_status, _)| {
-            matches!(
-                file_status,
-                crate::FileStatus::Added | crate::FileStatus::Modified | crate::FileStatus::Deleted
-            )
-        });
+        let has_staged = status.staged_files().count() > 0;
 
         if !has_staged {
             return Err(crate::error::GitError::CommandFailed(
@@ -80,12 +75,7 @@ impl Repository {
 
         // Check if there are staged changes
         let status = self.status()?;
-        let has_staged = status.files.iter().any(|(file_status, _)| {
-            matches!(
-                file_status,
-                crate::FileStatus::Added | crate::FileStatus::Modified | crate::FileStatus::Deleted
-            )
-        });
+        let has_staged = status.staged_files().count() > 0;
 
         if !has_staged {
             return Err(crate::error::GitError::CommandFailed(

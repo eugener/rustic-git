@@ -9,12 +9,19 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 ## Features
 
 - ✅ Repository initialization and opening
-- ✅ File status checking with detailed parsing
+- ✅ **Enhanced file status checking** with separate staged/unstaged tracking
+- ✅ **Precise Git state representation** using IndexStatus and WorktreeStatus enums
 - ✅ File staging (add files, add all, add updates)
 - ✅ Commit creation with hash return
-- ✅ Type-safe error handling
+- ✅ **Complete branch operations** with type-safe Branch API
+- ✅ **Branch management** (create, delete, checkout, list)
+- ✅ **Commit history & log operations** with multi-level API
+- ✅ **Advanced commit querying** with filtering and analysis
+- ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
-- ✅ Comprehensive test coverage
+- ✅ **Immutable collections** (Box<[T]>) for memory efficiency
+- ✅ **Const enum conversions** with zero runtime cost
+- ✅ Comprehensive test coverage (101+ tests)
 
 ## Installation
 
@@ -22,13 +29,19 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rustic-git = "0.1.0"
+rustic-git = "*"
+```
+
+Or use `cargo add` to automatically add the latest version:
+
+```bash
+cargo add rustic-git
 ```
 
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -37,11 +50,24 @@ fn main() -> Result<()> {
     // Or open an existing repository
     let repo = Repository::open("/path/to/existing/repo")?;
 
-    // Check repository status
+    // Check repository status with enhanced API
     let status = repo.status()?;
     if !status.is_clean() {
-        println!("Modified files: {:?}", status.modified_files());
-        println!("Untracked files: {:?}", status.untracked_files());
+        // Get files by staging state
+        let staged_count = status.staged_files().count();
+        let unstaged_count = status.unstaged_files().count();
+        let untracked_count = status.untracked_entries().count();
+
+        println!("Repository status:");
+        println!("  Staged: {} files", staged_count);
+        println!("  Unstaged: {} files", unstaged_count);
+        println!("  Untracked: {} files", untracked_count);
+
+        // Filter by specific status types
+        let modified_files: Vec<_> = status
+            .files_with_worktree_status(WorktreeStatus::Modified)
+            .collect();
+        println!("  Modified files: {:?}", modified_files);
     }
 
     // Stage files
@@ -52,6 +78,31 @@ fn main() -> Result<()> {
     // Create a commit
     let hash = repo.commit("Add new features")?;
     println!("Created commit: {}", hash.short());
+
+    // Branch operations
+    let branches = repo.branches()?;
+    println!("Current branch: {:?}", repo.current_branch()?.map(|b| b.name));
+
+    // Create and switch to new branch
+    let feature_branch = repo.checkout_new("feature/new-api", None)?;
+    println!("Created and switched to: {}", feature_branch.name);
+
+    // Commit history operations
+    let commits = repo.log()?;
+    println!("Total commits: {}", commits.len());
+
+    // Get recent commits
+    let recent = repo.recent_commits(5)?;
+    for commit in recent.iter() {
+        println!("{} - {}", commit.hash.short(), commit.message.subject);
+    }
+
+    // Advanced commit queries
+    let opts = LogOptions::new()
+        .max_count(10)
+        .grep("fix".to_string());
+    let bug_fixes = repo.log_with_options(&opts)?;
+    println!("Found {} bug fixes", bug_fixes.len());
 
     Ok(())
 }
@@ -85,7 +136,7 @@ let repo = Repository::open("/path/to/existing/repo")?;
 
 #### `Repository::status() -> Result<GitStatus>`
 
-Get the current repository status.
+Get the current repository status with enhanced staged/unstaged file tracking.
 
 ```rust
 let status = repo.status()?;
@@ -97,36 +148,81 @@ if status.is_clean() {
     println!("Repository has changes");
 }
 
-// Get files by status
-let modified = status.modified_files();
-let untracked = status.untracked_files();
+// Get files by staging state
+let staged_files: Vec<_> = status.staged_files().collect();
+let unstaged_files: Vec<_> = status.unstaged_files().collect();
+let untracked_files: Vec<_> = status.untracked_entries().collect();
 
-// Or work with all files directly
-for (file_status, filename) in &status.files {
-    println!("{:?}: {}", file_status, filename);
+// Filter by specific status types
+let modified_in_index: Vec<_> = status
+    .files_with_index_status(IndexStatus::Modified)
+    .collect();
+let modified_in_worktree: Vec<_> = status
+    .files_with_worktree_status(WorktreeStatus::Modified)
+    .collect();
+
+// Work with all file entries directly
+for entry in status.entries() {
+    println!("[{}][{}] {}",
+        entry.index_status.to_char(),
+        entry.worktree_status.to_char(),
+        entry.path.display()
+    );
 }
 ```
 
 The `GitStatus` struct contains:
-- `files: Box<[(FileStatus, String)]>` - All files with their status
+- `entries: Box<[FileEntry]>` - Immutable collection of file entries
 - `is_clean()` - Returns true if no changes
 - `has_changes()` - Returns true if any changes exist
-- `modified_files()` - Get all modified files
-- `untracked_files()` - Get all untracked files
-- `files_with_status(status)` - Get files with specific status
+- `staged_files()` - Iterator over files with index changes (staged)
+- `unstaged_files()` - Iterator over files with worktree changes (unstaged)
+- `untracked_entries()` - Iterator over untracked files
+- `ignored_files()` - Iterator over ignored files
+- `files_with_index_status(status)` - Filter by specific index status
+- `files_with_worktree_status(status)` - Filter by specific worktree status
 
 #### File Status Types
 
+The enhanced status API uses separate enums for index (staged) and worktree (unstaged) states:
+
 ```rust
-pub enum FileStatus {
-    Modified,   // File has been modified
-    Added,      // File has been added to index
-    Deleted,    // File has been deleted
-    Renamed,    // File has been renamed
-    Copied,     // File has been copied
-    Untracked,  // File is not tracked by git
-    Ignored,    // File is ignored by git
+// Index (staging area) status
+pub enum IndexStatus {
+    Clean,      // No changes in index
+    Modified,   // File modified in index
+    Added,      // File added to index
+    Deleted,    // File deleted in index
+    Renamed,    // File renamed in index
+    Copied,     // File copied in index
 }
+
+// Worktree (working directory) status
+pub enum WorktreeStatus {
+    Clean,      // No changes in worktree
+    Modified,   // File modified in worktree
+    Deleted,    // File deleted in worktree
+    Untracked,  // File not tracked by git
+    Ignored,    // File ignored by git
+}
+
+// File entry combining both states
+pub struct FileEntry {
+    pub path: PathBuf,
+    pub index_status: IndexStatus,
+    pub worktree_status: WorktreeStatus,
+}
+```
+
+Both enums support const character conversion:
+```rust
+// Convert to/from git porcelain characters
+let status = IndexStatus::from_char('M');  // IndexStatus::Modified
+let char = status.to_char();               // 'M'
+
+// Display formatting
+println!("{}", IndexStatus::Modified);     // Prints: M
+println!("{}", WorktreeStatus::Untracked); // Prints: ?
 ```
 
 ### Staging Operations
@@ -186,6 +282,358 @@ let hash = repo.commit_with_author(
 )?;
 ```
 
+### Branch Operations
+
+#### `Repository::branches() -> Result<BranchList>`
+
+List all branches in the repository.
+
+```rust
+let branches = repo.branches()?;
+
+// Check total count
+println!("Total branches: {}", branches.len());
+println!("Local branches: {}", branches.local_count());
+println!("Remote branches: {}", branches.remote_count());
+
+// Iterate over all branches
+for branch in branches.iter() {
+    let marker = if branch.is_current { "*" } else { " " };
+    println!("  {}{} ({})", marker, branch.name, branch.commit_hash.short());
+}
+
+// Filter by type
+let local_branches: Vec<_> = branches.local().collect();
+let remote_branches: Vec<_> = branches.remote().collect();
+```
+
+#### `Repository::current_branch() -> Result<Option<Branch>>`
+
+Get the currently checked out branch.
+
+```rust
+if let Some(current) = repo.current_branch()? {
+    println!("On branch: {}", current.name);
+    println!("Last commit: {}", current.commit_hash.short());
+    if let Some(upstream) = &current.upstream {
+        println!("Tracking: {}", upstream);
+    }
+}
+```
+
+#### `Repository::create_branch(name, start_point) -> Result<Branch>`
+
+Create a new branch.
+
+```rust
+// Create branch from current HEAD
+let branch = repo.create_branch("feature/new-api", None)?;
+
+// Create branch from specific commit/branch
+let branch = repo.create_branch("hotfix/bug-123", Some("main"))?;
+let branch = repo.create_branch("release/v1.0", Some("develop"))?;
+```
+
+#### `Repository::checkout(branch) -> Result<()>`
+
+Switch to an existing branch.
+
+```rust
+let branches = repo.branches()?;
+if let Some(branch) = branches.find("develop") {
+    repo.checkout(&branch)?;
+    println!("Switched to: {}", branch.name);
+}
+```
+
+#### `Repository::checkout_new(name, start_point) -> Result<Branch>`
+
+Create a new branch and switch to it immediately.
+
+```rust
+// Create and checkout new branch from current HEAD
+let branch = repo.checkout_new("feature/auth", None)?;
+
+// Create and checkout from specific starting point
+let branch = repo.checkout_new("feature/api", Some("develop"))?;
+println!("Created and switched to: {}", branch.name);
+```
+
+#### `Repository::delete_branch(branch, force) -> Result<()>`
+
+Delete a branch.
+
+```rust
+let branches = repo.branches()?;
+if let Some(branch) = branches.find("old-feature") {
+    // Safe delete (fails if unmerged)
+    repo.delete_branch(&branch, false)?;
+
+    // Force delete
+    // repo.delete_branch(&branch, true)?;
+}
+```
+
+#### Branch Types
+
+The branch API uses structured types for type safety:
+
+```rust
+// Branch represents a single branch
+pub struct Branch {
+    pub name: String,
+    pub branch_type: BranchType,
+    pub is_current: bool,
+    pub commit_hash: Hash,
+    pub upstream: Option<String>,
+}
+
+// Branch type enumeration
+pub enum BranchType {
+    Local,           // Local branch
+    RemoteTracking,  // Remote-tracking branch
+}
+
+// BranchList contains all branches with efficient methods
+pub struct BranchList {
+    // Methods:
+    // - iter() -> iterator over all branches
+    // - local() -> iterator over local branches
+    // - remote() -> iterator over remote branches
+    // - current() -> get current branch
+    // - find(name) -> find branch by exact name
+    // - find_by_short_name(name) -> find by short name
+    // - len(), is_empty() -> collection info
+}
+```
+
+#### Branch Search and Filtering
+
+```rust
+let branches = repo.branches()?;
+
+// Find specific branches
+if let Some(main) = branches.find("main") {
+    println!("Found main branch: {}", main.commit_hash.short());
+}
+
+// Find by short name (useful for remote branches)
+if let Some(feature) = branches.find_by_short_name("feature") {
+    println!("Found feature branch: {}", feature.name);
+}
+
+// Filter by type
+println!("Local branches:");
+for branch in branches.local() {
+    println!("  - {}", branch.name);
+}
+
+if branches.remote_count() > 0 {
+    println!("Remote branches:");
+    for branch in branches.remote() {
+        println!("  - {}", branch.name);
+    }
+}
+
+// Get current branch
+if let Some(current) = branches.current() {
+    println!("Currently on: {}", current.name);
+}
+```
+
+### Commit History Operations
+
+#### `Repository::log() -> Result<CommitLog>`
+
+Get all commits in the repository.
+
+```rust
+let commits = repo.log()?;
+println!("Total commits: {}", commits.len());
+
+for commit in commits.iter() {
+    println!("{} - {} by {} at {}",
+        commit.hash.short(),
+        commit.message.subject,
+        commit.author.name,
+        commit.timestamp.format("%Y-%m-%d %H:%M:%S")
+    );
+}
+```
+
+#### `Repository::recent_commits(count) -> Result<CommitLog>`
+
+Get the most recent N commits.
+
+```rust
+let recent = repo.recent_commits(10)?;
+for commit in recent.iter() {
+    println!("{} - {}", commit.hash.short(), commit.message.subject);
+    if let Some(body) = &commit.message.body {
+        println!("  {}", body);
+    }
+}
+```
+
+#### `Repository::log_with_options(options) -> Result<CommitLog>`
+
+Advanced commit queries with filtering options.
+
+```rust
+use chrono::{Utc, Duration};
+
+// Search commits with message containing "fix"
+let bug_fixes = repo.log_with_options(&LogOptions::new()
+    .max_count(20)
+    .grep("fix".to_string()))?;
+
+// Get commits by specific author
+let author_commits = repo.log_with_options(&LogOptions::new()
+    .author("jane@example.com".to_string()))?;
+
+// Get commits from date range
+let since = Utc::now() - Duration::days(30);
+let recent_commits = repo.log_with_options(&LogOptions::new()
+    .since(since)
+    .no_merges(true))?;
+
+// Get commits affecting specific paths
+let file_commits = repo.log_with_options(&LogOptions::new()
+    .paths(vec!["src/main.rs".into(), "docs/".into()]))?;
+```
+
+#### `Repository::log_range(from, to) -> Result<CommitLog>`
+
+Get commits between two specific commits.
+
+```rust
+// Get all commits between two hashes
+let range_commits = repo.log_range(&from_hash, &to_hash)?;
+println!("Commits in range: {}", range_commits.len());
+```
+
+#### `Repository::log_for_paths(paths) -> Result<CommitLog>`
+
+Get commits that affected specific files or directories.
+
+```rust
+// Get commits that modified specific files
+let file_commits = repo.log_for_paths(&["src/main.rs", "Cargo.toml"])?;
+
+// Get commits that affected a directory
+let dir_commits = repo.log_for_paths(&["src/"])?;
+```
+
+#### `Repository::show_commit(hash) -> Result<CommitDetails>`
+
+Get detailed information about a specific commit including file changes.
+
+```rust
+let details = repo.show_commit(&commit_hash)?;
+println!("Commit: {}", details.commit.hash);
+println!("Author: {} <{}>", details.commit.author.name, details.commit.author.email);
+println!("Date: {}", details.commit.timestamp);
+println!("Message: {}", details.commit.message.subject);
+
+if let Some(body) = &details.commit.message.body {
+    println!("Body: {}", body);
+}
+
+println!("Files changed: {}", details.files_changed.len());
+for file in &details.files_changed {
+    println!("  - {}", file.display());
+}
+
+println!("Changes: +{} -{}", details.insertions, details.deletions);
+```
+
+#### Commit Types and Filtering
+
+The commit API provides rich types for working with commit data:
+
+```rust
+// Commit represents a single commit
+pub struct Commit {
+    pub hash: Hash,
+    pub author: Author,
+    pub committer: Author,
+    pub message: CommitMessage,
+    pub timestamp: DateTime<Utc>,
+    pub parents: Box<[Hash]>,
+}
+
+// Author information with timestamp
+pub struct Author {
+    pub name: String,
+    pub email: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+// Parsed commit message
+pub struct CommitMessage {
+    pub subject: String,
+    pub body: Option<String>,
+}
+
+// Detailed commit information
+pub struct CommitDetails {
+    pub commit: Commit,
+    pub files_changed: Box<[PathBuf]>,
+    pub insertions: u32,
+    pub deletions: u32,
+}
+```
+
+#### CommitLog Filtering
+
+`CommitLog` provides iterator-based filtering methods:
+
+```rust
+let commits = repo.log()?;
+
+// Filter by message content
+let bug_fixes: Vec<_> = commits.with_message_containing("fix").collect();
+let features: Vec<_> = commits.with_message_containing("feat").collect();
+
+// Filter by date
+use chrono::{Utc, Duration};
+let last_week = Utc::now() - Duration::weeks(1);
+let recent: Vec<_> = commits.since(last_week).collect();
+
+// Filter by commit type
+let merge_commits: Vec<_> = commits.merges_only().collect();
+let regular_commits: Vec<_> = commits.no_merges().collect();
+
+// Search by hash
+if let Some(commit) = commits.find_by_hash(&target_hash) {
+    println!("Found: {}", commit.message.subject);
+}
+
+if let Some(commit) = commits.find_by_short_hash("abc1234") {
+    println!("Found by short hash: {}", commit.message.subject);
+}
+```
+
+#### LogOptions Builder
+
+`LogOptions` provides a builder pattern for advanced queries:
+
+```rust
+let options = LogOptions::new()
+    .max_count(50)                          // Limit number of commits
+    .since(Utc::now() - Duration::days(30)) // Since date
+    .until(Utc::now())                      // Until date
+    .author("jane@example.com".to_string()) // Filter by author
+    .committer("john@example.com".to_string()) // Filter by committer
+    .grep("important".to_string())          // Search in commit messages
+    .follow_renames(true)                   // Follow file renames
+    .merges_only(true)                      // Only merge commits
+    .no_merges(true)                        // Exclude merge commits
+    .paths(vec!["src/".into()]);            // Filter by paths
+
+let filtered_commits = repo.log_with_options(&options)?;
+```
+
 ### Hash Type
 
 The `Hash` type represents Git object hashes (commits, trees, blobs, etc.).
@@ -220,7 +668,7 @@ match repo.commit("message") {
 ## Complete Workflow Example
 
 ```rust
-use rustic_git::{Repository, FileStatus};
+use rustic_git::{Repository, IndexStatus, WorktreeStatus};
 use std::fs;
 
 fn main() -> rustic_git::Result<()> {
@@ -229,32 +677,76 @@ fn main() -> rustic_git::Result<()> {
 
     // Create some files
     fs::write("./my-project/README.md", "# My Project")?;
-    fs::write("./my-project/src/main.rs", "fn main() { println!(\"Hello!\"); }")?;
     fs::create_dir_all("./my-project/src")?;
+    fs::write("./my-project/src/main.rs", "fn main() { println!(\"Hello!\"); }")?;
 
-    // Check status
+    // Check status with enhanced API
     let status = repo.status()?;
-    println!("Found {} untracked files", status.untracked_files().len());
+    let untracked_count = status.untracked_entries().count();
+    println!("Found {} untracked files", untracked_count);
+
+    // Display detailed status
+    for entry in status.entries() {
+        println!("[{}][{}] {}",
+            entry.index_status.to_char(),
+            entry.worktree_status.to_char(),
+            entry.path.display()
+        );
+    }
 
     // Stage all files
     repo.add_all()?;
 
-    // Verify staging
+    // Verify staging with enhanced API
     let status = repo.status()?;
-    let added_files: Vec<_> = status.files.iter()
-        .filter(|(s, _)| matches!(s, FileStatus::Added))
-        .map(|(_, f)| f)
+    let staged_files: Vec<_> = status.staged_files().collect();
+    println!("Staged {} files", staged_files.len());
+
+    // Show specifically added files
+    let added_files: Vec<_> = status
+        .files_with_index_status(IndexStatus::Added)
         .collect();
-    println!("Staged files: {:?}", added_files);
+    println!("Added files: {:?}", added_files);
 
     // Create initial commit
     let hash = repo.commit("Initial commit with project structure")?;
     println!("Created commit: {}", hash.short());
 
+    // Branch operations workflow
+    let branches = repo.branches()?;
+    println!("Current branch: {:?}", repo.current_branch()?.map(|b| b.name));
+
+    // Create a feature branch
+    let feature_branch = repo.checkout_new("feature/user-auth", None)?;
+    println!("Created and switched to: {}", feature_branch.name);
+
+    // Make changes on the feature branch
+    fs::write("./my-project/src/auth.rs", "pub fn authenticate() { /* TODO */ }")?;
+    repo.add(&["src/auth.rs"])?;
+    let feature_commit = repo.commit("Add authentication module")?;
+    println!("Feature commit: {}", feature_commit.short());
+
+    // Switch back to main and create another branch
+    if let Some(main_branch) = branches.find("main") {
+        repo.checkout(&main_branch)?;
+        println!("Switched back to main");
+    }
+
+    let doc_branch = repo.create_branch("docs/api", None)?;
+    println!("Created documentation branch: {}", doc_branch.name);
+
+    // List all branches
+    let final_branches = repo.branches()?;
+    println!("\nFinal branch summary:");
+    for branch in final_branches.iter() {
+        let marker = if branch.is_current { "*" } else { " " };
+        println!("  {}{} ({})", marker, branch.name, branch.commit_hash.short());
+    }
+
     // Verify clean state
     let status = repo.status()?;
     assert!(status.is_clean());
-    println!("Repository is now clean!");
+    println!("Repository is clean!");
 
     Ok(())
 }
@@ -273,7 +765,7 @@ cargo run --example basic_usage
 # Repository lifecycle operations
 cargo run --example repository_operations
 
-# Status checking and file state filtering
+# Enhanced status API with staged/unstaged tracking
 cargo run --example status_checking
 
 # Staging operations (add, add_all, add_update)
@@ -281,6 +773,12 @@ cargo run --example staging_operations
 
 # Commit workflows and Hash type usage
 cargo run --example commit_workflows
+
+# Branch operations (create, delete, checkout, list)
+cargo run --example branch_operations
+
+# Commit history and log operations with advanced querying
+cargo run --example commit_history
 
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
@@ -293,6 +791,8 @@ cargo run --example error_handling
 - **`status_checking.rs`** - Comprehensive demonstration of GitStatus and FileStatus usage with all query methods and filtering capabilities
 - **`staging_operations.rs`** - Shows all staging methods (add, add_all, add_update) with before/after status comparisons
 - **`commit_workflows.rs`** - Demonstrates commit operations and Hash type methods, including custom authors and hash management
+- **`branch_operations.rs`** - Complete branch management demonstration: create, checkout, delete branches, and BranchList filtering
+- **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use temporary directories in `/tmp/` and include automatic cleanup for safe execution.
@@ -351,6 +851,8 @@ cargo run --example repository_operations
 cargo run --example status_checking
 cargo run --example staging_operations
 cargo run --example commit_workflows
+cargo run --example branch_operations
+cargo run --example commit_history
 cargo run --example error_handling
 ```
 
@@ -366,14 +868,12 @@ cargo run --example error_handling
 ## Roadmap
 
 Future planned features:
-- [ ] Commit history and log operations
 - [ ] Diff operations
-- [ ] Branch operations
 - [ ] Remote operations (clone, push, pull)
 - [ ] Merge and rebase operations
 - [ ] Tag operations
 - [ ] Stash operations
 
-## Version
+## Status
 
-Current version: 0.1.0 - Basic git workflow (init, status, add, commit)
+rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, and commit history analysis.

@@ -66,7 +66,7 @@ fn main() -> Result<()> {
 
             // Test that we can perform operations on the opened repo
             let status = opened_repo.status()?;
-            println!("   Repository status: {} files", status.files.len());
+            println!("   Repository status: {} files", status.entries.len());
         }
         Err(e) => {
             println!("Failed to open regular repository: {:?}", e);
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 
             // Note: status operations might behave differently on bare repos
             match opened_bare.status() {
-                Ok(status) => println!("   Bare repository status: {} files", status.files.len()),
+                Ok(status) => println!("   Bare repository status: {} files", status.entries.len()),
                 Err(e) => println!(
                     "   Note: Status check on bare repo failed (expected): {:?}",
                     e

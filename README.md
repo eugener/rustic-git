@@ -29,7 +29,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rustic-git = "0.1.0"
+rustic-git = "*"
+```
+
+Or use `cargo add` to automatically add the latest version:
+
+```bash
+cargo add rustic-git
 ```
 
 ## Quick Start
@@ -868,6 +874,6 @@ Future planned features:
 - [ ] Tag operations
 - [ ] Stash operations
 
-## Version
+## Status
 
-Current version: 0.1.0 - Complete git workflow with commit history (init, status, add, commit, branch, log)
+rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, and commit history analysis.

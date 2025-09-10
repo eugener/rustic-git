@@ -1,12 +1,12 @@
-name: Rust
+name: CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
     paths-ignore:
       - '**.md' # Ignores all Markdown files
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
     paths-ignore:
       - '**.md' # Ignores all Markdown files
 
@@ -38,6 +38,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
 
+    - name: Configure git for tests
+      run: |
+        git config --global user.name "Test User"
+        git config --global user.email "test@example.com"
+
     - name: Check formatting
       run: cargo fmt -- --check
 
@@ -49,3 +54,12 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose
+      
+    - name: Test examples compile and run
+      run: |
+        echo "Testing examples..."
+        for example in examples/*.rs; do
+          example_name=$(basename "$example" .rs)
+          echo "Building example: $example_name"
+          cargo build --example "$example_name"
+        done

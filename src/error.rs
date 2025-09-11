@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io;
 
 pub type Result<T> = std::result::Result<T, GitError>;
@@ -7,6 +8,17 @@ pub enum GitError {
     IoError(String),
     CommandFailed(String),
 }
+
+impl fmt::Display for GitError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GitError::IoError(msg) => write!(f, "IO error: {}", msg),
+            GitError::CommandFailed(msg) => write!(f, "Git command failed: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for GitError {}
 
 impl From<io::Error> for GitError {
     fn from(error: io::Error) -> Self {

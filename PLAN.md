@@ -12,41 +12,54 @@
 - Commit history and log operations with filtering
 - Error handling with comprehensive GitError types
 - Cross-platform compatibility (OS-agnostic temp directories)
+- **Remote management with full CRUD operations**
+- **Network operations (fetch, push, clone) with advanced options**
+- **File lifecycle operations (restore, reset, remove, move, .gitignore management)**
 
-## Phase 1: Essential Remote Operations (High Priority)
+## ✅ Phase 1: Essential Remote Operations (COMPLETED)
 
-### Remote Management
-- [ ] `repo.add_remote(name, url)` - Add remote repository
-- [ ] `repo.remove_remote(name)` - Remove remote
-- [ ] `repo.list_remotes()` - List all remotes with URLs
-- [ ] `repo.rename_remote(old_name, new_name)` - Rename remote
-- [ ] `repo.get_remote_url(name)` - Get remote URL
+### ✅ Remote Management
+- [x] `repo.add_remote(name, url)` - Add remote repository
+- [x] `repo.remove_remote(name)` - Remove remote
+- [x] `repo.list_remotes()` - List all remotes with URLs
+- [x] `repo.rename_remote(old_name, new_name)` - Rename remote
+- [x] `repo.get_remote_url(name)` - Get remote URL
 
-### Network Operations
-- [ ] `repo.fetch(remote)` / `repo.fetch_all()` - Fetch from remotes
-- [ ] `repo.pull()` / `repo.pull_from(remote, branch)` - Pull changes
-- [ ] `repo.push()` / `repo.push_to(remote, branch)` - Push changes
-- [ ] `repo.clone(url, path)` - Clone repository (static method)
-- [ ] Progress callbacks for network operations
+### ✅ Network Operations
+- [x] `repo.fetch(remote)` / `repo.fetch_with_options()` - Fetch from remotes
+- [x] `repo.push(remote, branch)` / `repo.push_with_options()` - Push changes
+- [x] `repo.clone(url, path)` - Clone repository (static method)
+- [x] Advanced options with FetchOptions and PushOptions
+- [x] Type-safe builder patterns for network operations
 
-### Remote Branch Tracking
+## ✅ Phase 2: File Lifecycle Operations (COMPLETED)
+
+### ✅ File Management
+- [x] `repo.checkout_file(path)` - Restore file from HEAD
+- [x] `repo.reset_file(path)` - Unstage specific file
+- [x] `repo.rm(paths)` - Remove files from repository
+- [x] `repo.rm_with_options(paths, options)` - Remove with advanced options
+- [x] `repo.mv(from, to)` - Move/rename files in repository
+- [x] `repo.mv_with_options(source, dest, options)` - Move with advanced options
+- [x] `repo.restore(paths, options)` - Restore files from specific commit with advanced options
+
+### ✅ Ignore Management
+- [x] `repo.ignore_add(patterns)` - Add patterns to .gitignore
+- [x] `repo.ignore_check(file)` - Check if file is ignored
+- [x] `repo.ignore_list()` - List current ignore patterns
+
+### ✅ Advanced File Operations
+- [x] RestoreOptions with source, staged, and worktree control
+- [x] RemoveOptions with force, recursive, cached, and ignore-unmatch
+- [x] MoveOptions with force, verbose, and dry-run modes
+- [x] Type-safe builder patterns for all file operations
+
+### 🔄 Remote Branch Tracking (Future Enhancement)
 - [ ] `repo.branch_set_upstream(branch, remote_branch)` - Set tracking
 - [ ] `repo.branch_track(local, remote)` - Track remote branch
 - [ ] Remote branch listing and status
+- [ ] Pull operations (fetch + merge)
 
-## Phase 2: File Lifecycle Operations (High Priority)
-
-### File Management
-- [ ] `repo.checkout_file(path)` - Restore file from HEAD
-- [ ] `repo.reset_file(path)` - Unstage specific file
-- [ ] `repo.rm(paths)` - Remove files from repository
-- [ ] `repo.mv(from, to)` - Move/rename files in repository
-- [ ] `repo.restore(paths, source)` - Restore files from specific commit
-
-### Ignore Management
-- [ ] `repo.ignore_add(patterns)` - Add patterns to .gitignore
-- [ ] `repo.ignore_check(file)` - Check if file is ignored
-- [ ] `repo.ignore_list()` - List current ignore patterns
 
 ## Phase 3: Release Management (Medium Priority)
 

@@ -56,10 +56,39 @@
   - Author struct: name, email, timestamp with Display implementation
   - CommitMessage: subject and optional body parsing
   - CommitDetails: full commit info including file changes and diff stats
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs)
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs (in src/commands/)
-- **Testing**: 106+ tests covering all functionality with comprehensive edge cases
+- **Remote management**: Full remote operations with network support
+  - Repository::add_remote(name, url) -> Result<()> - add remote repository
+  - Repository::remove_remote(name) -> Result<()> - remove remote
+  - Repository::rename_remote(old_name, new_name) -> Result<()> - rename remote
+  - Repository::list_remotes() -> Result<RemoteList> - list all remotes with URLs
+  - Repository::get_remote_url(name) -> Result<String> - get remote URL
+  - Repository::fetch(remote) -> Result<()> - fetch from remote repository
+  - Repository::fetch_with_options(remote, options) -> Result<()> - fetch with FetchOptions
+  - Repository::push(remote, branch) -> Result<()> - push to remote repository
+  - Repository::push_with_options(remote, branch, options) -> Result<()> - push with PushOptions
+  - Repository::clone(url, path) -> Result<Repository> - clone repository (static method)
+  - Remote struct: name, fetch_url, push_url with proper URL handling
+  - RemoteList: Vec<Remote> with search methods (find, iter, len, is_empty)
+  - FetchOptions: prune, tags, all_remotes with builder pattern (with_prune, with_tags, with_all_remotes)
+  - PushOptions: force, tags, set_upstream with builder pattern (with_force, with_tags, with_set_upstream)
+- **File lifecycle operations**: Comprehensive file management with advanced options
+  - Repository::checkout_file(path) -> Result<()> - restore file from HEAD
+  - Repository::restore(paths, options) -> Result<()> - advanced restore with RestoreOptions
+  - Repository::reset_file(path) -> Result<()> - unstage specific file
+  - Repository::rm(paths) -> Result<()> - remove files from repository
+  - Repository::rm_with_options(paths, options) -> Result<()> - remove with RemoveOptions
+  - Repository::mv(source, destination) -> Result<()> - move/rename files
+  - Repository::mv_with_options(source, dest, options) -> Result<()> - move with MoveOptions
+  - Repository::ignore_add(patterns) -> Result<()> - add patterns to .gitignore
+  - Repository::ignore_check(path) -> Result<bool> - check if file is ignored
+  - Repository::ignore_list() -> Result<Vec<String>> - list current ignore patterns
+  - RestoreOptions: with_source(), with_staged(), with_worktree() - builder for restore configuration
+  - RemoveOptions: with_force(), with_recursive(), with_cached(), with_ignore_unmatch() - builder for remove configuration
+  - MoveOptions: with_force(), with_verbose(), with_dry_run() - builder for move configuration
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs (in src/commands/)
+- **Testing**: 128+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -73,6 +102,9 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 - **commit_workflows.rs**: Commit operations and Hash type - commit(), commit_with_author(), Hash methods
 - **branch_operations.rs**: Complete branch management - create/delete/checkout branches, BranchList filtering, branch type handling, search operations
 - **commit_history.rs**: Comprehensive commit history & log operations - demonstrates all commit querying APIs, filtering, analysis, and advanced LogOptions usage
+- **config_operations.rs**: Repository configuration management - user setup, configuration values, repository-scoped settings
+- **remote_operations.rs**: Complete remote management - add/remove/rename remotes, fetch/push operations with options, network operations, error handling
+- **file_lifecycle_operations.rs**: Comprehensive file management - restore/reset/remove/move operations, .gitignore management, advanced file lifecycle workflows, staging area manipulation
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
 
 Run examples with: `cargo run --example <example_name>`

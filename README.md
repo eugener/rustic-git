@@ -26,11 +26,14 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Commit history & log operations** with multi-level API
 - ✅ **Advanced commit querying** with filtering and analysis
 - ✅ **Repository configuration management** with type-safe API
+- ✅ **Remote management** with full CRUD operations and network support
+- ✅ **Network operations** (fetch, push, clone) with advanced options
+- ✅ **File lifecycle operations** (restore, reset, remove, move, .gitignore management)
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (106+ tests)
+- ✅ Comprehensive test coverage (128+ tests)
 
 ## Installation
 
@@ -50,7 +53,7 @@ cargo add rustic-git
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -115,6 +118,51 @@ fn main() -> Result<()> {
         .grep("fix".to_string());
     let bug_fixes = repo.log_with_options(&opts)?;
     println!("Found {} bug fixes", bug_fixes.len());
+
+    // Remote management
+    repo.add_remote("origin", "https://github.com/user/repo.git")?;
+    repo.add_remote("upstream", "https://github.com/original/repo.git")?;
+
+    // List remotes
+    let remotes = repo.list_remotes()?;
+    for remote in remotes.iter() {
+        println!("Remote: {} -> {}", remote.name, remote.fetch_url);
+    }
+
+    // Network operations with options
+    let fetch_opts = FetchOptions::new().with_prune().with_tags();
+    repo.fetch_with_options("origin", fetch_opts)?;
+
+    let push_opts = PushOptions::new().with_set_upstream();
+    repo.push_with_options("origin", "main", push_opts)?;
+
+    // File lifecycle operations
+    // Restore file from HEAD
+    repo.checkout_file("modified_file.txt")?;
+    
+    // Advanced restore with options
+    let restore_opts = RestoreOptions::new()
+        .with_source("HEAD~1")
+        .with_worktree();
+    repo.restore(&["file.txt"], restore_opts)?;
+    
+    // Unstage files
+    repo.reset_file("staged_file.txt")?;
+    
+    // Remove files
+    repo.rm(&["unwanted_file.txt"])?;
+    
+    // Remove from index only (keep in working tree)
+    let rm_opts = RemoveOptions::new().with_cached();
+    repo.rm_with_options(&["keep_local.txt"], rm_opts)?;
+    
+    // Move/rename files
+    repo.mv("old_name.txt", "new_name.txt")?;
+    
+    // .gitignore management
+    repo.ignore_add(&["*.tmp", "build/", "node_modules/"])?;
+    let is_ignored = repo.ignore_check("temp_file.tmp")?;
+    let patterns = repo.ignore_list()?;
 
     Ok(())
 }
@@ -306,6 +354,270 @@ repo.config().unset("user.signingkey")?;
 - **`unset(key)`** - Remove a git configuration value
 
 All configuration operations are scoped to the specific repository.
+
+### Remote Management
+
+#### `Repository::add_remote(name, url) -> Result<()>`
+
+Add a remote to the repository.
+
+```rust
+repo.add_remote("origin", "https://github.com/user/repo.git")?;
+repo.add_remote("upstream", "git@github.com:original/repo.git")?;
+```
+
+#### `Repository::list_remotes() -> Result<RemoteList>`
+
+List all remotes with their URLs.
+
+```rust
+let remotes = repo.list_remotes()?;
+for remote in remotes.iter() {
+    println!("{} -> {}", remote.name, remote.fetch_url);
+    if let Some(push_url) = &remote.push_url {
+        println!("  Push URL: {}", push_url);
+    }
+}
+
+// Find specific remote
+if let Some(origin) = remotes.find("origin") {
+    println!("Origin URL: {}", origin.fetch_url);
+}
+```
+
+#### `Repository::remove_remote(name) -> Result<()>`
+
+Remove a remote from the repository.
+
+```rust
+repo.remove_remote("old-remote")?;
+```
+
+#### `Repository::rename_remote(old_name, new_name) -> Result<()>`
+
+Rename an existing remote.
+
+```rust
+repo.rename_remote("origin", "upstream")?;
+```
+
+#### `Repository::get_remote_url(name) -> Result<String>`
+
+Get the URL for a specific remote.
+
+```rust
+let url = repo.get_remote_url("origin")?;
+println!("Origin URL: {}", url);
+```
+
+### Network Operations
+
+#### `Repository::fetch(remote) -> Result<()>`
+
+Fetch changes from a remote repository.
+
+```rust
+repo.fetch("origin")?;
+```
+
+#### `Repository::fetch_with_options(remote, options) -> Result<()>`
+
+Fetch with advanced options.
+
+```rust
+let options = FetchOptions::new()
+    .with_prune()      // Remove stale remote-tracking branches
+    .with_tags()       // Fetch tags
+    .with_all_remotes(); // Fetch from all remotes
+
+repo.fetch_with_options("origin", options)?;
+```
+
+#### `Repository::push(remote, branch) -> Result<()>`
+
+Push changes to a remote repository.
+
+```rust
+repo.push("origin", "main")?;
+```
+
+#### `Repository::push_with_options(remote, branch, options) -> Result<()>`
+
+Push with advanced options.
+
+```rust
+let options = PushOptions::new()
+    .with_force()        // Force push (use with caution)
+    .with_tags()         // Push tags
+    .with_set_upstream(); // Set upstream tracking
+
+repo.push_with_options("origin", "feature-branch", options)?;
+```
+
+#### `Repository::clone(url, path) -> Result<Repository>`
+
+Clone a remote repository (static method).
+
+```rust
+let repo = Repository::clone("https://github.com/user/repo.git", "./local-copy")?;
+```
+
+### File Lifecycle Operations
+
+#### `Repository::checkout_file(path) -> Result<()>`
+
+Restore a file from HEAD, discarding local changes.
+
+```rust
+// Restore a modified file to its last committed state
+repo.checkout_file("modified_file.txt")?;
+```
+
+#### `Repository::restore(paths, options) -> Result<()>`
+
+Restore files with advanced options using git's restore command.
+
+```rust
+// Restore from a specific commit
+let options = RestoreOptions::new()
+    .with_source("HEAD~1")
+    .with_worktree();
+repo.restore(&["file.txt"], options)?;
+
+// Restore only staged changes
+let staged_options = RestoreOptions::new().with_staged();
+repo.restore(&["file.txt"], staged_options)?;
+
+// Restore both staged and worktree
+let both_options = RestoreOptions::new()
+    .with_staged()
+    .with_worktree();
+repo.restore(&["file.txt"], both_options)?;
+```
+
+#### `Repository::reset_file(path) -> Result<()>`
+
+Unstage a file, removing it from the staging area while keeping changes in working directory.
+
+```rust
+// Unstage a previously staged file
+repo.reset_file("staged_file.txt")?;
+```
+
+#### `Repository::rm(paths) -> Result<()>`
+
+Remove files from both working directory and repository.
+
+```rust
+// Remove files from repository
+repo.rm(&["unwanted_file.txt", "old_dir/"])?;
+```
+
+#### `Repository::rm_with_options(paths, options) -> Result<()>`
+
+Remove files with advanced options.
+
+```rust
+// Remove from index only, keep in working tree
+let cached_options = RemoveOptions::new().with_cached();
+repo.rm_with_options(&["keep_local.txt"], cached_options)?;
+
+// Force remove with recursive option
+let force_options = RemoveOptions::new()
+    .with_force()
+    .with_recursive();
+repo.rm_with_options(&["problematic_dir/"], force_options)?;
+
+// Remove with ignore-unmatch (don't fail if files don't exist)
+let safe_options = RemoveOptions::new().with_ignore_unmatch();
+repo.rm_with_options(&["might_not_exist.txt"], safe_options)?;
+```
+
+#### `Repository::mv(source, destination) -> Result<()>`
+
+Move or rename files and directories.
+
+```rust
+// Rename a file
+repo.mv("old_name.txt", "new_name.txt")?;
+
+// Move to different directory
+repo.mv("file.txt", "subdir/file.txt")?;
+```
+
+#### `Repository::mv_with_options(source, destination, options) -> Result<()>`
+
+Move files with advanced options.
+
+```rust
+// Force move even if destination exists
+let force_options = MoveOptions::new().with_force();
+repo.mv_with_options("source.txt", "existing.txt", force_options)?;
+
+// Dry run to see what would be moved
+let dry_run_options = MoveOptions::new()
+    .with_dry_run()
+    .with_verbose();
+repo.mv_with_options("test.txt", "preview.txt", dry_run_options)?;
+```
+
+#### `Repository::ignore_add(patterns) -> Result<()>`
+
+Add patterns to .gitignore file.
+
+```rust
+// Add ignore patterns
+repo.ignore_add(&["*.tmp", "build/", "node_modules/", ".DS_Store"])?;
+```
+
+#### `Repository::ignore_check(path) -> Result<bool>`
+
+Check if a file is ignored by .gitignore patterns.
+
+```rust
+// Check if file is ignored
+let is_ignored = repo.ignore_check("temp_file.tmp")?;
+if is_ignored {
+    println!("File is ignored by .gitignore");
+}
+```
+
+#### `Repository::ignore_list() -> Result<Vec<String>>`
+
+List current ignore patterns from .gitignore.
+
+```rust
+// List all ignore patterns
+let patterns = repo.ignore_list()?;
+for pattern in patterns {
+    println!("Ignoring: {}", pattern);
+}
+```
+
+#### File Lifecycle Options
+
+The file lifecycle operations use builder patterns for advanced configuration:
+
+```rust
+// RestoreOptions for advanced restore operations
+let restore_options = RestoreOptions::new()
+    .with_source("main")      // Restore from specific commit/branch
+    .with_staged()            // Restore staged files
+    .with_worktree();         // Restore working tree files
+
+// RemoveOptions for file removal
+let remove_options = RemoveOptions::new()
+    .with_force()             // Force removal
+    .with_recursive()         // Remove directories recursively
+    .with_cached()            // Remove from index only
+    .with_ignore_unmatch();   // Don't fail if files don't match
+
+// MoveOptions for file moves
+let move_options = MoveOptions::new()
+    .with_force()             // Force move even if destination exists
+    .with_verbose()           // Show verbose output
+    .with_dry_run();          // Dry run mode (don't actually move)
+```
 
 ### Commit Operations
 
@@ -846,6 +1158,12 @@ cargo run --example config_operations
 # Commit history and log operations with advanced querying
 cargo run --example commit_history
 
+# Remote management and network operations
+cargo run --example remote_operations
+
+# File lifecycle operations (restore, remove, move, .gitignore)
+cargo run --example file_lifecycle_operations
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -860,6 +1178,8 @@ cargo run --example error_handling
 - **`branch_operations.rs`** - Complete branch management demonstration: create, checkout, delete branches, and BranchList filtering
 - **`config_operations.rs`** - Repository configuration management demonstration: user setup, configuration values, and repository-scoped settings
 - **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
+- **`remote_operations.rs`** - Complete remote management demonstration: add, remove, rename remotes, fetch/push operations with options, and network operations
+- **`file_lifecycle_operations.rs`** - Comprehensive file management demonstration: restore, reset, remove, move operations, .gitignore management, and advanced file lifecycle workflows
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use OS-appropriate temporary directories and include automatic cleanup for safe execution.
@@ -921,6 +1241,8 @@ cargo run --example commit_workflows
 cargo run --example branch_operations
 cargo run --example config_operations
 cargo run --example commit_history
+cargo run --example remote_operations
+cargo run --example file_lifecycle_operations
 cargo run --example error_handling
 ```
 
@@ -936,12 +1258,12 @@ cargo run --example error_handling
 ## Roadmap
 
 Future planned features:
-- [ ] Diff operations
-- [ ] Remote operations (clone, push, pull)
+- [ ] Tag operations (create, list, delete, push tags)
+- [ ] Stash operations (save, apply, pop, list)
 - [ ] Merge and rebase operations
-- [ ] Tag operations
-- [ ] Stash operations
+- [ ] Diff operations
+- [ ] Repository analysis (blame, statistics, health check)
 
 ## Status
 
-rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, and commit history analysis.
+rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, commit history analysis, remote management, network operations, and comprehensive file lifecycle management.

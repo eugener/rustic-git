@@ -1,6 +1,6 @@
 name: Release to crates.io
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 on:

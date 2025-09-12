@@ -1,4 +1,7 @@
 name: Release to crates.io
+permissions:
+  contents: write
+  pull-requests: write
 
 on:
     release:

@@ -56,7 +56,7 @@
   - Author struct: name, email, timestamp with Display implementation
   - CommitMessage: subject and optional body parsing
   - CommitDetails: full commit info including file changes and diff stats
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs)
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs), DiffOutput, FileDiff, DiffStatus, DiffOptions, DiffStats, DiffChunk, DiffLine, DiffLineType (in src/commands/diff.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - **Remote management**: Full remote operations with network support
   - Repository::add_remote(name, url) -> Result<()> - add remote repository
@@ -87,8 +87,20 @@
   - RestoreOptions: with_source(), with_staged(), with_worktree() - builder for restore configuration
   - RemoveOptions: with_force(), with_recursive(), with_cached(), with_ignore_unmatch() - builder for remove configuration
   - MoveOptions: with_force(), with_verbose(), with_dry_run() - builder for move configuration
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs (in src/commands/)
-- **Testing**: 128+ tests covering all functionality with comprehensive edge cases
+- **Diff operations**: Multi-level API for comprehensive change comparison
+  - Repository::diff() -> Result<DiffOutput> - working directory vs index (unstaged changes)
+  - Repository::diff_staged() -> Result<DiffOutput> - index vs HEAD (staged changes)
+  - Repository::diff_head() -> Result<DiffOutput> - working directory vs HEAD (all changes)
+  - Repository::diff_commits(from, to) -> Result<DiffOutput> - between specific commits
+  - Repository::diff_with_options(options) -> Result<DiffOutput> - advanced diff with DiffOptions
+  - DiffOutput: files, stats with immutable collections and comprehensive filtering
+  - FileDiff: path, old_path, status, chunks, additions, deletions with change details
+  - DiffStatus enum: Added, Modified, Deleted, Renamed, Copied with const char conversion
+  - DiffOptions: context_lines, whitespace handling, path filtering, output formats (name-only, stat, numstat)
+  - DiffStats: files_changed, insertions, deletions with aggregate statistics
+  - Complete filtering: files_with_status(), iter(), is_empty(), len() for result analysis
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs, diff.rs (in src/commands/)
+- **Testing**: 144+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -105,6 +117,7 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 - **config_operations.rs**: Repository configuration management - user setup, configuration values, repository-scoped settings
 - **remote_operations.rs**: Complete remote management - add/remove/rename remotes, fetch/push operations with options, network operations, error handling
 - **file_lifecycle_operations.rs**: Comprehensive file management - restore/reset/remove/move operations, .gitignore management, advanced file lifecycle workflows, staging area manipulation
+- **diff_operations.rs**: Comprehensive diff operations showcase - unstaged/staged diffs, commit comparisons, advanced options (whitespace handling, path filtering), output formats (name-only, stat, numstat), and change analysis
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
 
 Run examples with: `cargo run --example <example_name>`

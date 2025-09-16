@@ -29,11 +29,12 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Remote management** with full CRUD operations and network support
 - ✅ **Network operations** (fetch, push, clone) with advanced options
 - ✅ **File lifecycle operations** (restore, reset, remove, move, .gitignore management)
+- ✅ **Diff operations** with multi-level API and comprehensive options
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (128+ tests)
+- ✅ Comprehensive test coverage (144+ tests)
 
 ## Installation
 
@@ -53,7 +54,7 @@ cargo add rustic-git
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions, DiffOptions, DiffOutput, DiffStatus};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -163,6 +164,41 @@ fn main() -> Result<()> {
     repo.ignore_add(&["*.tmp", "build/", "node_modules/"])?;
     let is_ignored = repo.ignore_check("temp_file.tmp")?;
     let patterns = repo.ignore_list()?;
+
+    // Diff operations
+    // Check for unstaged changes
+    let diff = repo.diff()?;
+    if !diff.is_empty() {
+        println!("Unstaged changes found:");
+        for file in diff.iter() {
+            println!("  {} {}", file.status, file.path.display());
+        }
+    }
+
+    // Check for staged changes
+    let staged_diff = repo.diff_staged()?;
+    println!("Files staged for commit: {}", staged_diff.len());
+
+    // Compare between commits
+    let recent_commits = repo.recent_commits(2)?;
+    if recent_commits.len() >= 2 {
+        let commit_diff = repo.diff_commits(
+            &recent_commits.iter().nth(1).unwrap().hash,
+            &recent_commits.iter().nth(0).unwrap().hash,
+        )?;
+        println!("Changes in last commit: {}", commit_diff.stats);
+    }
+
+    // Diff with options
+    let diff_opts = DiffOptions::new()
+        .ignore_whitespace()
+        .context_lines(5);
+    let detailed_diff = repo.diff_with_options(&diff_opts)?;
+
+    // Filter by status
+    let added_files: Vec<_> = detailed_diff.files_with_status(DiffStatus::Added).collect();
+    let modified_files: Vec<_> = detailed_diff.files_with_status(DiffStatus::Modified).collect();
+    println!("Added: {} files, Modified: {} files", added_files.len(), modified_files.len());
 
     Ok(())
 }
@@ -1127,6 +1163,218 @@ fn main() -> rustic_git::Result<()> {
 }
 ```
 
+### Diff Operations
+
+The diff operations provide a comprehensive API for comparing different states in your Git repository. All diff operations return a `DiffOutput` containing file changes and statistics.
+
+#### `Repository::diff() -> Result<DiffOutput>`
+
+Get differences between working directory and index (unstaged changes).
+
+```rust
+let diff = repo.diff()?;
+
+if diff.is_empty() {
+    println!("No unstaged changes");
+} else {
+    println!("Unstaged changes in {} files:", diff.len());
+    for file in diff.iter() {
+        println!("  {} {} (+{} -{} lines)",
+                 file.status,
+                 file.path.display(),
+                 file.additions,
+                 file.deletions);
+    }
+    println!("{}", diff.stats);
+}
+```
+
+#### `Repository::diff_staged() -> Result<DiffOutput>`
+
+Get differences between index and HEAD (staged changes).
+
+```rust
+let staged_diff = repo.diff_staged()?;
+println!("Files staged for commit: {}", staged_diff.len());
+
+// Filter by change type
+let added_files: Vec<_> = staged_diff.files_with_status(DiffStatus::Added).collect();
+let modified_files: Vec<_> = staged_diff.files_with_status(DiffStatus::Modified).collect();
+let deleted_files: Vec<_> = staged_diff.files_with_status(DiffStatus::Deleted).collect();
+
+println!("Staged changes: {} added, {} modified, {} deleted",
+         added_files.len(), modified_files.len(), deleted_files.len());
+```
+
+#### `Repository::diff_head() -> Result<DiffOutput>`
+
+Get all differences between working directory and HEAD (both staged and unstaged).
+
+```rust
+let head_diff = repo.diff_head()?;
+println!("All changes since last commit:");
+for file in head_diff.iter() {
+    println!("  {} {}", file.status, file.path.display());
+}
+```
+
+#### `Repository::diff_commits(from, to) -> Result<DiffOutput>`
+
+Compare two specific commits.
+
+```rust
+let commits = repo.recent_commits(2)?;
+if commits.len() >= 2 {
+    let diff = repo.diff_commits(&commits[1].hash, &commits[0].hash)?;
+    println!("Changes in last commit:");
+    println!("  {}", diff.stats);
+
+    // Show renames and copies
+    for file in diff.iter() {
+        match file.status {
+            DiffStatus::Renamed => {
+                if let Some(old_path) = &file.old_path {
+                    println!("  Renamed: {} -> {}", old_path.display(), file.path.display());
+                }
+            },
+            DiffStatus::Copied => {
+                if let Some(old_path) = &file.old_path {
+                    println!("  Copied: {} -> {}", old_path.display(), file.path.display());
+                }
+            },
+            _ => println!("  {} {}", file.status, file.path.display()),
+        }
+    }
+}
+```
+
+#### `Repository::diff_with_options(options) -> Result<DiffOutput>`
+
+Advanced diff operations with custom options.
+
+```rust
+// Diff with custom options
+let options = DiffOptions::new()
+    .ignore_whitespace()           // Ignore whitespace changes
+    .ignore_whitespace_change()    // Ignore whitespace amount changes
+    .ignore_blank_lines()          // Ignore blank line changes
+    .context_lines(10)             // Show 10 lines of context
+    .paths(vec![PathBuf::from("src/")]);  // Only diff src/ directory
+
+let diff = repo.diff_with_options(&options)?;
+
+// Different output formats
+let name_only = repo.diff_with_options(&DiffOptions::new().name_only())?;
+println!("Changed files:");
+for file in name_only.iter() {
+    println!("  {}", file.path.display());
+}
+
+let stat_diff = repo.diff_with_options(&DiffOptions::new().stat_only())?;
+println!("Diff statistics:\n{}", stat_diff);
+
+let numstat_diff = repo.diff_with_options(&DiffOptions::new().numstat())?;
+for file in numstat_diff.iter() {
+    println!("{}\t+{}\t-{}", file.path.display(), file.additions, file.deletions);
+}
+```
+
+#### Diff Types and Data Structures
+
+```rust
+// Main diff output containing files and statistics
+pub struct DiffOutput {
+    pub files: Box<[FileDiff]>,    // Immutable collection of file changes
+    pub stats: DiffStats,          // Aggregate statistics
+}
+
+// Individual file changes
+pub struct FileDiff {
+    pub path: PathBuf,             // Current file path
+    pub old_path: Option<PathBuf>, // Original path (for renames/copies)
+    pub status: DiffStatus,        // Type of change
+    pub chunks: Box<[DiffChunk]>,  // Diff chunks (for full diff parsing)
+    pub additions: usize,          // Lines added
+    pub deletions: usize,          // Lines deleted
+}
+
+// Change status for files
+pub enum DiffStatus {
+    Added,      // New file
+    Modified,   // Changed file
+    Deleted,    // Removed file
+    Renamed,    // File renamed
+    Copied,     // File copied
+}
+
+// Aggregate statistics
+pub struct DiffStats {
+    pub files_changed: usize,
+    pub insertions: usize,
+    pub deletions: usize,
+}
+```
+
+#### Diff Options Builder
+
+```rust
+// Build custom diff options
+let options = DiffOptions::new()
+    .context_lines(5)                    // Lines of context around changes
+    .ignore_whitespace()                 // --ignore-all-space
+    .ignore_whitespace_change()          // --ignore-space-change
+    .ignore_blank_lines()                // --ignore-blank-lines
+    .name_only()                         // Show only file names
+    .stat_only()                         // Show only statistics
+    .numstat()                           // Show numerical statistics
+    .cached()                            // Compare index with HEAD
+    .no_index()                          // Compare files outside git
+    .paths(vec![PathBuf::from("src/")]); // Limit to specific paths
+
+let diff = repo.diff_with_options(&options)?;
+```
+
+#### Working with Diff Results
+
+```rust
+let diff = repo.diff()?;
+
+// Check if any changes exist
+if diff.is_empty() {
+    println!("No changes");
+    return Ok(());
+}
+
+// Iterate over all changed files
+for file in diff.iter() {
+    println!("{} {}", file.status, file.path.display());
+
+    // Check if file is binary
+    if file.is_binary() {
+        println!("  (binary file)");
+        continue;
+    }
+
+    // Show change statistics
+    println!("  +{} -{} lines", file.additions, file.deletions);
+}
+
+// Filter by specific change types
+let new_files: Vec<_> = diff.files_with_status(DiffStatus::Added).collect();
+let modified_files: Vec<_> = diff.files_with_status(DiffStatus::Modified).collect();
+let deleted_files: Vec<_> = diff.files_with_status(DiffStatus::Deleted).collect();
+
+println!("Summary: {} new, {} modified, {} deleted",
+         new_files.len(), modified_files.len(), deleted_files.len());
+
+// Access aggregate statistics
+println!("Total: {}", diff.stats);
+println!("Files: {}, +{} insertions, -{} deletions",
+         diff.stats.files_changed,
+         diff.stats.insertions,
+         diff.stats.deletions);
+```
+
 ## Examples
 
 The `examples/` directory contains comprehensive demonstrations of library functionality:
@@ -1164,6 +1412,9 @@ cargo run --example remote_operations
 # File lifecycle operations (restore, remove, move, .gitignore)
 cargo run --example file_lifecycle_operations
 
+# Diff operations with multi-level API and comprehensive options
+cargo run --example diff_operations
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -1179,6 +1430,7 @@ cargo run --example error_handling
 - **`config_operations.rs`** - Repository configuration management demonstration: user setup, configuration values, and repository-scoped settings
 - **`commit_history.rs`** - Comprehensive commit history & log operations showing all querying APIs, filtering, analysis, and advanced LogOptions usage
 - **`remote_operations.rs`** - Complete remote management demonstration: add, remove, rename remotes, fetch/push operations with options, and network operations
+- **`diff_operations.rs`** - Comprehensive diff operations showcase: unstaged/staged diffs, commit comparisons, advanced options, filtering, and output formats
 - **`file_lifecycle_operations.rs`** - Comprehensive file management demonstration: restore, reset, remove, move operations, .gitignore management, and advanced file lifecycle workflows
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 

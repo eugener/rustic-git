@@ -15,6 +15,9 @@ impl<'a> RepoConfig<'a> {
         Self { repo }
     }
 
+    pub const USER_NAME_KEY: &'static str = "user.name";
+    pub const USER_EMAIL_KEY: &'static str = "user.email";
+
     /// Configure git user name and email for this repository
     ///
     /// This is a convenience method that sets both user.name and user.email
@@ -44,8 +47,8 @@ impl<'a> RepoConfig<'a> {
     /// # Ok::<(), rustic_git::GitError>(())
     /// ```
     pub fn set_user(&self, name: &str, email: &str) -> Result<()> {
-        self.set("user.name", name)?;
-        self.set("user.email", email)?;
+        self.set(Self::USER_NAME_KEY, name)?;
+        self.set(Self::USER_EMAIL_KEY, email)?;
         Ok(())
     }
 
@@ -58,8 +61,8 @@ impl<'a> RepoConfig<'a> {
     /// A tuple containing the user name and email, or an error if either
     /// configuration value is not set.
     pub fn get_user(&self) -> Result<(String, String)> {
-        let name = self.get("user.name")?;
-        let email = self.get("user.email")?;
+        let name = self.get(Self::USER_NAME_KEY)?;
+        let email = self.get(Self::USER_EMAIL_KEY)?;
         Ok((name, email))
     }
 

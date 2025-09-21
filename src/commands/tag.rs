@@ -28,6 +28,7 @@
 //! # Ok::<(), rustic_git::GitError>(())
 //! ```
 
+use crate::commands::log::Author;
 use crate::error::{GitError, Result};
 use crate::repository::Repository;
 use crate::types::Hash;
@@ -67,23 +68,6 @@ impl fmt::Display for TagType {
             TagType::Lightweight => write!(f, "lightweight"),
             TagType::Annotated => write!(f, "annotated"),
         }
-    }
-}
-
-/// Author information for annotated tags
-#[derive(Debug, Clone, PartialEq)]
-pub struct Author {
-    /// Author name
-    pub name: String,
-    /// Author email
-    pub email: String,
-    /// Author timestamp
-    pub timestamp: DateTime<Utc>,
-}
-
-impl fmt::Display for Author {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} <{}>", self.name, self.email)
     }
 }
 

@@ -32,11 +32,13 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Diff operations** with multi-level API and comprehensive options
 - ✅ **Tag management** with comprehensive operations and filtering
 - ✅ **Lightweight and annotated tags** with type-safe API
+- ✅ **Stash operations** with comprehensive stash management and filtering
+- ✅ **Advanced stash options** (untracked files, keep index, specific paths)
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (152+ tests)
+- ✅ Comprehensive test coverage (161+ tests)
 
 ## Installation
 
@@ -56,7 +58,7 @@ cargo add rustic-git
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions, DiffOptions, DiffOutput, DiffStatus, TagOptions, TagType};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions, DiffOptions, DiffOutput, DiffStatus, TagOptions, TagType, StashOptions, StashApplyOptions};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -228,6 +230,33 @@ fn main() -> Result<()> {
             println!("  Message: {}", message);
         }
     }
+
+    // Stash operations
+    // Save current changes to a stash
+    let stash = repo.stash_save("WIP: working on new feature")?;
+    println!("Created stash: {} -> {}", stash.message, stash.hash.short());
+
+    // Stash with advanced options
+    let stash_options = StashOptions::new()
+        .with_untracked()     // Include untracked files
+        .with_keep_index();   // Keep staged changes in index
+    let advanced_stash = repo.stash_push("WIP: with untracked files", stash_options)?;
+
+    // List and filter stashes
+    let stashes = repo.stash_list()?;
+    println!("Repository has {} stashes", stashes.len());
+
+    // Filter stashes by message content
+    let wip_stashes: Vec<_> = stashes.find_containing("WIP").collect();
+    println!("Found {} WIP stashes", wip_stashes.len());
+
+    // Apply latest stash (keeps it in list)
+    repo.stash_apply(0, StashApplyOptions::new())?;
+    println!("Applied latest stash");
+
+    // Pop stash (applies and removes from list)
+    repo.stash_pop(0, StashApplyOptions::new().with_index())?;
+    println!("Popped latest stash with index restoration");
 
     Ok(())
 }
@@ -1404,6 +1433,257 @@ println!("Files: {}, +{} insertions, -{} deletions",
          diff.stats.deletions);
 ```
 
+### Stash Operations
+
+The stash operations provide a comprehensive API for temporarily saving and managing work-in-progress changes. All stash operations return structured data with type-safe filtering capabilities.
+
+#### `Repository::stash_save(message) -> Result<Stash>`
+
+Save current changes to a new stash with a message.
+
+```rust
+// Save current changes
+let stash = repo.stash_save("WIP: working on authentication feature")?;
+println!("Created stash: {} -> {}", stash.message, stash.hash.short());
+println!("Stash index: {}, Branch: {}", stash.index, stash.branch);
+```
+
+#### `Repository::stash_push(message, options) -> Result<Stash>`
+
+Create a stash with advanced options.
+
+```rust
+// Stash including untracked files
+let options = StashOptions::new()
+    .with_untracked()     // Include untracked files
+    .with_keep_index();   // Keep staged changes in index
+
+let stash = repo.stash_push("WIP: with untracked files", options)?;
+
+// Stash specific paths only
+let path_options = StashOptions::new()
+    .with_paths(vec!["src/main.rs".into(), "tests/".into()]);
+let partial_stash = repo.stash_push("WIP: specific files only", path_options)?;
+```
+
+#### `Repository::stash_list() -> Result<StashList>`
+
+List all stashes with filtering capabilities.
+
+```rust
+let stashes = repo.stash_list()?;
+println!("Repository has {} stashes", stashes.len());
+
+// Iterate over all stashes
+for stash in stashes.iter() {
+    println!("[{}] {} -> {} ({})",
+        stash.index,
+        stash.message,
+        stash.hash.short(),
+        stash.timestamp.format("%Y-%m-%d %H:%M:%S")
+    );
+}
+
+// Filter by message content
+let wip_stashes: Vec<_> = stashes.find_containing("WIP").collect();
+let feature_stashes: Vec<_> = stashes.find_containing("feature").collect();
+println!("Found {} WIP stashes, {} feature stashes",
+         wip_stashes.len(), feature_stashes.len());
+
+// Get specific stashes
+if let Some(latest) = stashes.latest() {
+    println!("Latest stash: {}", latest.message);
+}
+
+if let Some(second) = stashes.get(1) {
+    println!("Second stash: {}", second.message);
+}
+
+// Filter by branch
+let main_stashes: Vec<_> = stashes.for_branch("main").collect();
+println!("Stashes from main branch: {}", main_stashes.len());
+```
+
+#### `Repository::stash_apply(index, options) -> Result<()>`
+
+Apply a stash without removing it from the stash list.
+
+```rust
+// Apply latest stash
+repo.stash_apply(0, StashApplyOptions::new())?;
+
+// Apply with index restoration (restore staging state)
+let apply_options = StashApplyOptions::new()
+    .with_index()    // Restore staged state
+    .with_quiet();   // Suppress output
+repo.stash_apply(0, apply_options)?;
+```
+
+#### `Repository::stash_pop(index, options) -> Result<()>`
+
+Apply a stash and remove it from the stash list.
+
+```rust
+// Pop latest stash
+repo.stash_pop(0, StashApplyOptions::new())?;
+
+// Pop with options
+let pop_options = StashApplyOptions::new().with_index();
+repo.stash_pop(0, pop_options)?;
+```
+
+#### `Repository::stash_show(index) -> Result<String>`
+
+Show the contents of a stash.
+
+```rust
+// Show latest stash contents
+let stash_contents = repo.stash_show(0)?;
+println!("Latest stash changes:\n{}", stash_contents);
+
+// Show specific stash
+let stash_contents = repo.stash_show(2)?;
+println!("Stash@{2} contents:\n{}", stash_contents);
+```
+
+#### `Repository::stash_drop(index) -> Result<()>`
+
+Remove a specific stash from the stash list.
+
+```rust
+// Drop a specific stash
+repo.stash_drop(1)?;  // Remove second stash
+println!("Dropped stash@{1}");
+```
+
+#### `Repository::stash_clear() -> Result<()>`
+
+Remove all stashes from the repository.
+
+```rust
+// Clear all stashes
+repo.stash_clear()?;
+println!("Cleared all stashes");
+```
+
+#### Stash Types and Data Structures
+
+```rust
+// Individual stash representation
+pub struct Stash {
+    pub index: usize,              // Stash index (0 is most recent)
+    pub message: String,           // Stash message
+    pub hash: Hash,                // Stash commit hash
+    pub branch: String,            // Branch where stash was created
+    pub timestamp: DateTime<Utc>,  // When stash was created
+}
+
+// Collection of stashes with filtering methods
+pub struct StashList {
+    // Methods:
+    // - iter() -> iterator over all stashes
+    // - find_containing(text) -> filter by message content
+    // - for_branch(branch) -> filter by branch name
+    // - latest() -> get most recent stash
+    // - get(index) -> get stash by index
+    // - len(), is_empty() -> collection info
+}
+
+// Options for creating stashes
+pub struct StashOptions {
+    pub include_untracked: bool,    // Include untracked files
+    pub include_all: bool,          // Include all files (untracked + ignored)
+    pub keep_index: bool,           // Keep staged changes in index
+    pub patch: bool,                // Interactive patch mode
+    pub staged_only: bool,          // Only stash staged changes
+    pub paths: Vec<PathBuf>,        // Specific paths to stash
+}
+
+// Options for applying stashes
+pub struct StashApplyOptions {
+    pub restore_index: bool,        // Restore staged state
+    pub quiet: bool,                // Suppress output messages
+}
+```
+
+#### Stash Options Builder
+
+```rust
+// Build custom stash options
+let stash_options = StashOptions::new()
+    .with_untracked()               // Include untracked files (-u)
+    .with_keep_index()              // Keep staged changes (--keep-index)
+    .with_patch()                   // Interactive mode (-p)
+    .with_staged_only()             // Only staged changes (--staged)
+    .with_paths(vec![              // Specific paths only
+        "src/main.rs".into(),
+        "tests/".into()
+    ]);
+
+let stash = repo.stash_push("Custom stash", stash_options)?;
+
+// Build apply options
+let apply_options = StashApplyOptions::new()
+    .with_index()                   // Restore index state (--index)
+    .with_quiet();                  // Quiet mode (-q)
+
+repo.stash_apply(0, apply_options)?;
+```
+
+#### Working with Stash Results
+
+```rust
+let stashes = repo.stash_list()?;
+
+// Check if any stashes exist
+if stashes.is_empty() {
+    println!("No stashes found");
+    return Ok(());
+}
+
+// Work with latest stash
+if let Some(latest) = stashes.latest() {
+    println!("Latest stash: {}", latest.message);
+    println!("Created on: {}", latest.timestamp.format("%Y-%m-%d %H:%M:%S"));
+    println!("On branch: {}", latest.branch);
+
+    // Show stash contents
+    let contents = repo.stash_show(latest.index)?;
+    println!("Changes:\n{}", contents);
+
+    // Apply the stash
+    repo.stash_apply(latest.index, StashApplyOptions::new())?;
+}
+
+// Filter and process stashes
+let work_stashes: Vec<_> = stashes
+    .find_containing("WIP")
+    .filter(|s| s.branch == "main")
+    .collect();
+
+for stash in work_stashes {
+    println!("Work stash on main: [{}] {}", stash.index, stash.message);
+}
+
+// Manage stash stack
+println!("Stash stack summary:");
+for stash in stashes.iter().take(5) {  // Show top 5 stashes
+    println!("  [{}] {} ({})",
+        stash.index,
+        stash.message,
+        stash.timestamp.format("%m/%d %H:%M")
+    );
+}
+
+// Clean up old stashes (example: keep only recent 10)
+if stashes.len() > 10 {
+    for i in (10..stashes.len()).rev() {
+        repo.stash_drop(i)?;
+        println!("Dropped old stash@{{{}}}", i);
+    }
+}
+```
+
 ## Examples
 
 The `examples/` directory contains comprehensive demonstrations of library functionality:
@@ -1447,6 +1727,9 @@ cargo run --example diff_operations
 # Tag operations (create, list, delete, filter)
 cargo run --example tag_operations
 
+# Stash operations (save, apply, pop, list, manage)
+cargo run --example stash_operations
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -1465,6 +1748,7 @@ cargo run --example error_handling
 - **`diff_operations.rs`** - Comprehensive diff operations showcase: unstaged/staged diffs, commit comparisons, advanced options, filtering, and output formats
 - **`file_lifecycle_operations.rs`** - Comprehensive file management demonstration: restore, reset, remove, move operations, .gitignore management, and advanced file lifecycle workflows
 - **`tag_operations.rs`** - Complete tag management demonstration: create, list, delete, filter tags, lightweight vs annotated tags, tag options, and comprehensive tag workflows
+- **`stash_operations.rs`** - Complete stash management demonstration: save, apply, pop, list stashes, advanced options (untracked files, keep index, specific paths), filtering, and comprehensive stash workflows
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use OS-appropriate temporary directories and include automatic cleanup for safe execution.
@@ -1528,6 +1812,9 @@ cargo run --example config_operations
 cargo run --example commit_history
 cargo run --example remote_operations
 cargo run --example file_lifecycle_operations
+cargo run --example diff_operations
+cargo run --example tag_operations
+cargo run --example stash_operations
 cargo run --example error_handling
 ```
 
@@ -1544,10 +1831,10 @@ cargo run --example error_handling
 
 Future planned features:
 - [x] Tag operations (create, list, delete, push tags)
-- [ ] Stash operations (save, apply, pop, list)
+- [x] Stash operations (save, apply, pop, list, manage)
 - [ ] Merge and rebase operations
 - [ ] Repository analysis (blame, statistics, health check)
 
 ## Status
 
-rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, commit history analysis, remote management, network operations, comprehensive file lifecycle management, and tag operations.
+rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, commit history analysis, remote management, network operations, comprehensive file lifecycle management, tag operations, and stash management.

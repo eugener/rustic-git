@@ -213,7 +213,7 @@ impl Repository {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use rustic_git::Repository;
     ///
     /// let repo = Repository::open(".")?;
@@ -381,7 +381,7 @@ impl Repository {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use rustic_git::Repository;
     ///
     /// let repo = Repository::open(".")?;

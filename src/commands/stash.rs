@@ -226,7 +226,7 @@ impl Repository {
         Self::ensure_git()?;
 
         let output = git(
-            &["stash", "list", "--format=%gd %H %gs"],
+            &["stash", "list", "--format=%gd %H %ct %gs"],
             Some(self.repo_path()),
         )?;
 
@@ -485,9 +485,23 @@ impl Repository {
     }
 }
 
+/// Parse Unix timestamp to DateTime<Utc>
+fn parse_unix_timestamp(timestamp_str: &str) -> Result<DateTime<Utc>> {
+    if timestamp_str.is_empty() {
+        return Ok(Utc::now());
+    }
+
+    let timestamp: i64 = timestamp_str
+        .parse()
+        .map_err(|_| GitError::CommandFailed(format!("Invalid timestamp: {}", timestamp_str)))?;
+
+    DateTime::from_timestamp(timestamp, 0)
+        .ok_or_else(|| GitError::CommandFailed(format!("Invalid timestamp value: {}", timestamp)))
+}
+
 /// Parse a stash list line into a Stash struct
 fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
-    // Format: "stash@{0} hash On branch: message"
+    // Format: "stash@{0} hash timestamp On branch: message"
     let parts: Vec<&str> = line.splitn(4, ' ').collect();
 
     if parts.len() < 4 {
@@ -497,6 +511,9 @@ fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
     }
 
     let hash = Hash::from(parts[1]);
+
+    // Parse timestamp
+    let timestamp = parse_unix_timestamp(parts[2]).unwrap_or_else(|_| Utc::now());
 
     // Extract branch name and message from parts[3] (should be "On branch: message")
     let remainder = parts[3];
@@ -523,7 +540,7 @@ fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
         message,
         hash,
         branch,
-        timestamp: Utc::now(), // Simplified for now
+        timestamp,
     })
 }
 

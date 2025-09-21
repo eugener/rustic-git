@@ -212,8 +212,16 @@ impl Repository {
     pub fn tags(&self) -> Result<TagList> {
         Self::ensure_git()?;
 
-        // Get list of tag names
-        let output = git(&["tag", "-l"], Some(self.repo_path()))?;
+        // Use git for-each-ref to get all tag information in a single call
+        // Format: refname:short objecttype objectname *objectname taggername taggeremail taggerdate:unix subject body
+        let output = git(
+            &[
+                "for-each-ref",
+                "--format=%(refname:short)|%(objecttype)|%(objectname)|%(*objectname)|%(taggername)|%(taggeremail)|%(taggerdate:unix)|%(subject)|%(body)",
+                "refs/tags/",
+            ],
+            Some(self.repo_path()),
+        )?;
 
         if output.trim().is_empty() {
             return Ok(TagList::new(vec![]));
@@ -221,20 +229,14 @@ impl Repository {
 
         let mut tags = Vec::new();
 
-        for tag_name in output.lines() {
-            let tag_name = tag_name.trim();
-            if tag_name.is_empty() {
+        for line in output.lines() {
+            let line = line.trim();
+            if line.is_empty() {
                 continue;
             }
 
-            // Get tag information
-            let show_output = git(
-                &["show", "--format=fuller", tag_name],
-                Some(self.repo_path()),
-            )?;
-
-            // Parse tag information
-            if let Ok(tag) = parse_tag_info(tag_name, &show_output) {
+            // Parse tag information from for-each-ref output
+            if let Ok(tag) = parse_for_each_ref_line(line) {
                 tags.push(tag);
             }
         }
@@ -386,7 +388,93 @@ impl Repository {
     }
 }
 
-/// Parse tag information from git show output
+/// Parse Unix timestamp to DateTime<Utc>
+fn parse_unix_timestamp(timestamp_str: &str) -> Result<DateTime<Utc>> {
+    if timestamp_str.is_empty() {
+        return Ok(Utc::now());
+    }
+
+    let timestamp: i64 = timestamp_str
+        .parse()
+        .map_err(|_| GitError::CommandFailed(format!("Invalid timestamp: {}", timestamp_str)))?;
+
+    DateTime::from_timestamp(timestamp, 0)
+        .ok_or_else(|| GitError::CommandFailed(format!("Invalid timestamp value: {}", timestamp)))
+}
+
+/// Parse tag information from git for-each-ref output
+/// Format: refname:short|objecttype|objectname|*objectname|taggername|taggeremail|taggerdate:unix|subject|body
+fn parse_for_each_ref_line(line: &str) -> Result<Tag> {
+    let parts: Vec<&str> = line.split('|').collect();
+
+    if parts.len() < 9 {
+        return Err(GitError::CommandFailed(
+            "Invalid for-each-ref format".to_string(),
+        ));
+    }
+
+    let name = parts[0].to_string();
+    let object_type = parts[1];
+    let object_name = parts[2];
+    let dereferenced_object = parts[3]; // For annotated tags, this is the commit hash
+    let tagger_name = parts[4];
+    let tagger_email = parts[5];
+    let tagger_date = parts[6];
+    let subject = parts[7];
+    let body = parts[8];
+
+    // Determine tag type and commit hash
+    let (tag_type, hash) = if object_type == "tag" {
+        // Annotated tag - use dereferenced object (the commit it points to)
+        (TagType::Annotated, Hash::from(dereferenced_object))
+    } else {
+        // Lightweight tag - use object name (direct commit reference)
+        (TagType::Lightweight, Hash::from(object_name))
+    };
+
+    // Build tagger information for annotated tags
+    let tagger =
+        if tag_type == TagType::Annotated && !tagger_name.is_empty() && !tagger_email.is_empty() {
+            let timestamp = parse_unix_timestamp(tagger_date).unwrap_or_else(|_| Utc::now());
+            Some(Author {
+                name: tagger_name.to_string(),
+                email: tagger_email.to_string(),
+                timestamp,
+            })
+        } else {
+            None
+        };
+
+    // Build message for annotated tags
+    let message = if tag_type == TagType::Annotated && (!subject.is_empty() || !body.is_empty()) {
+        let full_message = if !body.is_empty() {
+            format!("{}\n\n{}", subject, body)
+        } else {
+            subject.to_string()
+        };
+        Some(full_message.trim().to_string())
+    } else {
+        None
+    };
+
+    // Timestamp for the tag
+    let timestamp = if tag_type == TagType::Annotated {
+        tagger.as_ref().map(|t| t.timestamp)
+    } else {
+        None
+    };
+
+    Ok(Tag {
+        name,
+        hash,
+        tag_type,
+        message,
+        tagger,
+        timestamp,
+    })
+}
+
+/// Parse tag information from git show output (fallback method)
 fn parse_tag_info(tag_name: &str, show_output: &str) -> Result<Tag> {
     let lines: Vec<&str> = show_output.lines().collect();
 
@@ -467,16 +555,19 @@ fn parse_lightweight_tag(tag_name: &str, lines: &[&str]) -> Result<Tag> {
     })
 }
 
-/// Parse author information from a git log line
+/// Parse author information from a git tagger line
+/// Format: "Tagger: Name <email>" (timestamp not available in this format)
 fn parse_author_line(line: &str) -> Option<Author> {
-    // Parse format: "Name <email> timestamp timezone"
+    // Parse format: "Name <email>" (no timestamp in git show --format=fuller tagger line)
     if let Some(email_start) = line.find('<')
         && let Some(email_end) = line.find('>')
     {
         let name = line[..email_start].trim().to_string();
         let email = line[email_start + 1..email_end].to_string();
 
-        // Parse timestamp (simplified - just use current time for now)
+        // Timestamp is not available in the tagger line from git show --format=fuller
+        // We use the current time as a fallback, which matches the review feedback
+        // that tagger timestamp may default
         let timestamp = Utc::now();
 
         return Some(Author {

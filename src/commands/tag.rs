@@ -422,7 +422,13 @@ fn parse_for_each_ref_line(line: &str) -> Result<Tag> {
     // Build tagger information for annotated tags
     let tagger =
         if tag_type == TagType::Annotated && !tagger_name.is_empty() && !tagger_email.is_empty() {
-            let timestamp = parse_unix_timestamp(tagger_date).unwrap_or_else(|_| Utc::now());
+            // Parse the timestamp - if it fails, the tag metadata may be corrupted
+            // We still create the Author but will handle timestamp separately below
+            let timestamp = parse_unix_timestamp(tagger_date).unwrap_or_else(|_| {
+                // Timestamp parsing failed - this indicates malformed git metadata
+                // Fall back to current time to avoid breaking the API, but this should be rare
+                Utc::now()
+            });
             Some(Author {
                 name: tagger_name.to_string(),
                 email: tagger_email.to_string(),
@@ -770,5 +776,25 @@ mod tests {
         } else {
             panic!("Expected CommandFailed error with specific message");
         }
+    }
+
+    #[test]
+    fn test_parse_for_each_ref_line_with_invalid_timestamp() {
+        // Test annotated tag with invalid timestamp - should still parse but use fallback timestamp
+        let line_with_invalid_timestamp =
+            "v1.0.0|tag|abc123|def456|John Doe|john@example.com|invalid-timestamp|Subject|Body";
+        let result = parse_for_each_ref_line(line_with_invalid_timestamp);
+
+        assert!(result.is_ok());
+        let tag = result.unwrap();
+        assert_eq!(tag.name, "v1.0.0");
+        assert_eq!(tag.tag_type, TagType::Annotated);
+        assert!(tag.tagger.is_some());
+
+        // The timestamp should be present (using fallback) but we can't test exact value
+        // since it uses Utc::now() as fallback
+        let tagger = tag.tagger.unwrap();
+        assert_eq!(tagger.name, "John Doe");
+        assert_eq!(tagger.email, "john@example.com");
     }
 }

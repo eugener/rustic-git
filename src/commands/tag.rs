@@ -394,9 +394,10 @@ fn parse_for_each_ref_line(line: &str) -> Result<Tag> {
     let parts: Vec<&str> = line.split('|').collect();
 
     if parts.len() < 9 {
-        return Err(GitError::CommandFailed(
-            "Invalid for-each-ref format".to_string(),
-        ));
+        return Err(GitError::CommandFailed(format!(
+            "Invalid for-each-ref format: expected 9 parts, got {}",
+            parts.len()
+        )));
     }
 
     let name = parts[0].to_string();
@@ -752,5 +753,22 @@ mod tests {
 
         // Clean up
         fs::remove_dir_all(&test_path).unwrap();
+    }
+
+    #[test]
+    fn test_parse_for_each_ref_line_invalid_format() {
+        // Test with insufficient parts (should have 9 parts minimum)
+        let invalid_line = "tag1|commit|abc123"; // Only 3 parts instead of 9
+        let result = parse_for_each_ref_line(invalid_line);
+
+        assert!(result.is_err());
+
+        if let Err(GitError::CommandFailed(msg)) = result {
+            assert!(msg.contains("Invalid for-each-ref format"));
+            assert!(msg.contains("expected 9 parts"));
+            assert!(msg.contains("got 3"));
+        } else {
+            panic!("Expected CommandFailed error with specific message");
+        }
     }
 }

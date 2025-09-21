@@ -32,7 +32,7 @@ use crate::commands::log::Author;
 use crate::error::{GitError, Result};
 use crate::repository::Repository;
 use crate::types::Hash;
-use crate::utils::git;
+use crate::utils::{git, parse_unix_timestamp};
 use chrono::{DateTime, Utc};
 use std::fmt;
 
@@ -386,20 +386,6 @@ impl Repository {
         let show_output = git(&["show", "--format=fuller", name], Some(self.repo_path()))?;
         parse_tag_info(name, &show_output)
     }
-}
-
-/// Parse Unix timestamp to DateTime<Utc>
-fn parse_unix_timestamp(timestamp_str: &str) -> Result<DateTime<Utc>> {
-    if timestamp_str.is_empty() {
-        return Ok(Utc::now());
-    }
-
-    let timestamp: i64 = timestamp_str
-        .parse()
-        .map_err(|_| GitError::CommandFailed(format!("Invalid timestamp: {}", timestamp_str)))?;
-
-    DateTime::from_timestamp(timestamp, 0)
-        .ok_or_else(|| GitError::CommandFailed(format!("Invalid timestamp value: {}", timestamp)))
 }
 
 /// Parse tag information from git for-each-ref output

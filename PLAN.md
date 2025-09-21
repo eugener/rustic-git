@@ -15,6 +15,8 @@
 - **Remote management with full CRUD operations**
 - **Network operations (fetch, push, clone) with advanced options**
 - **File lifecycle operations (restore, reset, remove, move, .gitignore management)**
+- **Diff operations with multi-level API and comprehensive options**
+- **Tag management with comprehensive operations and filtering**
 
 ## ✅ Phase 1: Essential Remote Operations (COMPLETED)
 
@@ -61,21 +63,26 @@
 - [ ] Pull operations (fetch + merge)
 
 
-## Phase 3: Release Management (Medium Priority)
+## ✅ Phase 3: Tag Operations (COMPLETED)
 
-### Tag Operations
-- [ ] `repo.create_tag(name, message)` - Create annotated tag
-- [ ] `repo.create_lightweight_tag(name)` - Create lightweight tag
-- [ ] `repo.list_tags()` - List tags with filtering options
-- [ ] `repo.delete_tag(name)` - Delete tag
-- [ ] `repo.tag_info(name)` - Get tag details
-- [ ] `repo.push_tags()` - Push tags to remote
+### ✅ Tag Management
+- [x] `repo.tags()` - List all tags with comprehensive filtering
+- [x] `repo.create_tag(name, target)` - Create lightweight tag
+- [x] `repo.create_tag_with_options(name, target, options)` - Create tag with options
+- [x] `repo.delete_tag(name)` - Delete tag
+- [x] `repo.show_tag(name)` - Get detailed tag information
+- [x] TagList with filtering (lightweight, annotated, find_containing, for_commit)
+- [x] TagOptions builder with force, message, sign, annotated options
+- [x] Type-safe TagType enum (Lightweight, Annotated)
+- [x] Complete tag metadata support (message, tagger, timestamp)
+
+## Phase 4: Release Management (Medium Priority)
 
 ### Archive & Export
 - [ ] `repo.archive(format, output_path)` - Create repository archive
 - [ ] `repo.export_commit(hash, path)` - Export specific commit
 
-## Phase 4: Development Workflow (Medium Priority)
+## Phase 5: Development Workflow (Medium Priority)
 
 ### Stash Management
 - [ ] `repo.stash_save(message)` - Save current changes
@@ -92,7 +99,7 @@
 - [ ] Conflict resolution helpers and status
 - [ ] `repo.abort_merge()` / `repo.abort_rebase()` - Abort operations
 
-## Phase 5: Advanced Configuration (Medium Priority)
+## Phase 6: Advanced Configuration (Medium Priority)
 
 ### Enhanced Configuration
 - [ ] `Config::global()` - Global git configuration
@@ -107,7 +114,7 @@
 - [ ] `repo.hooks().remove(hook_type)` - Remove hooks
 - [ ] Pre-built common hooks (pre-commit, pre-push, etc.)
 
-## Phase 6: Repository Analysis (Low Priority)
+## Phase 7: Repository Analysis (Low Priority)
 
 ### History & Inspection
 - [ ] `repo.show(hash)` - Show commit with full diff
@@ -121,7 +128,7 @@
 - [ ] `repo.size_analysis()` - Large files, repository size analysis
 - [ ] `repo.gc()` / `repo.fsck()` - Maintenance operations
 
-## Phase 7: Advanced Features (Low Priority)
+## Phase 8: Advanced Features (Low Priority)
 
 ### Worktree Support
 - [ ] `repo.worktree_add(path, branch)` - Add worktree

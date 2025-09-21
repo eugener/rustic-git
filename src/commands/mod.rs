@@ -7,6 +7,7 @@ pub mod files;
 pub mod log;
 pub mod remote;
 pub mod status;
+pub mod tag;
 
 pub use branch::{Branch, BranchList, BranchType};
 pub use config::RepoConfig;
@@ -17,3 +18,4 @@ pub use files::{MoveOptions, RemoveOptions, RestoreOptions};
 pub use log::{Author, Commit, CommitDetails, CommitLog, CommitMessage, LogOptions};
 pub use remote::{FetchOptions, PushOptions, Remote, RemoteList};
 pub use status::{FileEntry, GitStatus, IndexStatus, WorktreeStatus};
+pub use tag::{Tag, TagList, TagOptions, TagType};

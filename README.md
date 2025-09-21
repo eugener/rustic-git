@@ -30,11 +30,13 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Network operations** (fetch, push, clone) with advanced options
 - ✅ **File lifecycle operations** (restore, reset, remove, move, .gitignore management)
 - ✅ **Diff operations** with multi-level API and comprehensive options
+- ✅ **Tag management** with comprehensive operations and filtering
+- ✅ **Lightweight and annotated tags** with type-safe API
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency
 - ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (144+ tests)
+- ✅ Comprehensive test coverage (152+ tests)
 
 ## Installation
 
@@ -54,7 +56,7 @@ cargo add rustic-git
 ## Quick Start
 
 ```rust
-use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions, DiffOptions, DiffOutput, DiffStatus};
+use rustic_git::{Repository, Result, IndexStatus, WorktreeStatus, LogOptions, FetchOptions, PushOptions, RestoreOptions, RemoveOptions, MoveOptions, DiffOptions, DiffOutput, DiffStatus, TagOptions, TagType};
 
 fn main() -> Result<()> {
     // Initialize a new repository
@@ -199,6 +201,33 @@ fn main() -> Result<()> {
     let added_files: Vec<_> = detailed_diff.files_with_status(DiffStatus::Added).collect();
     let modified_files: Vec<_> = detailed_diff.files_with_status(DiffStatus::Modified).collect();
     println!("Added: {} files, Modified: {} files", added_files.len(), modified_files.len());
+
+    // Tag management
+    // Create a lightweight tag
+    let tag = repo.create_tag("v1.0.0", None)?;
+    println!("Created tag: {} -> {}", tag.name, tag.hash.short());
+
+    // Create an annotated tag
+    let tag_options = TagOptions::new()
+        .with_message("Release version 1.1.0".to_string());
+    let annotated_tag = repo.create_tag_with_options("v1.1.0", None, tag_options)?;
+    println!("Created annotated tag: {} ({})", annotated_tag.name, annotated_tag.tag_type);
+
+    // List and filter tags
+    let tags = repo.tags()?;
+    println!("Repository has {} tags", tags.len());
+
+    // Filter by tag type
+    for tag in tags.lightweight() {
+        println!("Lightweight tag: {} -> {}", tag.name, tag.hash.short());
+    }
+
+    for tag in tags.annotated() {
+        println!("Annotated tag: {} -> {}", tag.name, tag.hash.short());
+        if let Some(message) = &tag.message {
+            println!("  Message: {}", message);
+        }
+    }
 
     Ok(())
 }
@@ -1415,6 +1444,9 @@ cargo run --example file_lifecycle_operations
 # Diff operations with multi-level API and comprehensive options
 cargo run --example diff_operations
 
+# Tag operations (create, list, delete, filter)
+cargo run --example tag_operations
+
 # Error handling patterns and recovery strategies
 cargo run --example error_handling
 ```
@@ -1432,6 +1464,7 @@ cargo run --example error_handling
 - **`remote_operations.rs`** - Complete remote management demonstration: add, remove, rename remotes, fetch/push operations with options, and network operations
 - **`diff_operations.rs`** - Comprehensive diff operations showcase: unstaged/staged diffs, commit comparisons, advanced options, filtering, and output formats
 - **`file_lifecycle_operations.rs`** - Comprehensive file management demonstration: restore, reset, remove, move operations, .gitignore management, and advanced file lifecycle workflows
+- **`tag_operations.rs`** - Complete tag management demonstration: create, list, delete, filter tags, lightweight vs annotated tags, tag options, and comprehensive tag workflows
 - **`error_handling.rs`** - Comprehensive error handling patterns showing GitError variants, recovery strategies, and best practices
 
 All examples use OS-appropriate temporary directories and include automatic cleanup for safe execution.
@@ -1510,12 +1543,11 @@ cargo run --example error_handling
 ## Roadmap
 
 Future planned features:
-- [ ] Tag operations (create, list, delete, push tags)
+- [x] Tag operations (create, list, delete, push tags)
 - [ ] Stash operations (save, apply, pop, list)
 - [ ] Merge and rebase operations
-- [ ] Diff operations
 - [ ] Repository analysis (blame, statistics, health check)
 
 ## Status
 
-rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, commit history analysis, remote management, network operations, and comprehensive file lifecycle management.
+rustic-git provides a complete git workflow including repository management, status checking, staging operations, commits, branch operations, commit history analysis, remote management, network operations, comprehensive file lifecycle management, and tag operations.

@@ -56,7 +56,7 @@
   - Author struct: name, email, timestamp with Display implementation
   - CommitMessage: subject and optional body parsing
   - CommitDetails: full commit info including file changes and diff stats
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs), DiffOutput, FileDiff, DiffStatus, DiffOptions, DiffStats, DiffChunk, DiffLine, DiffLineType (in src/commands/diff.rs)
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs), DiffOutput, FileDiff, DiffStatus, DiffOptions, DiffStats, DiffChunk, DiffLine, DiffLineType (in src/commands/diff.rs), Tag, TagList, TagType, TagOptions (in src/commands/tag.rs), Stash, StashList, StashOptions, StashApplyOptions (in src/commands/stash.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - **Remote management**: Full remote operations with network support
   - Repository::add_remote(name, url) -> Result<()> - add remote repository
@@ -99,8 +99,32 @@
   - DiffOptions: context_lines, whitespace handling, path filtering, output formats (name-only, stat, numstat)
   - DiffStats: files_changed, insertions, deletions with aggregate statistics
   - Complete filtering: files_with_status(), iter(), is_empty(), len() for result analysis
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs, diff.rs (in src/commands/)
-- **Testing**: 144+ tests covering all functionality with comprehensive edge cases
+- **Tag operations**: Complete tag management with type-safe API
+  - Repository::tags() -> Result<TagList> - list all tags with comprehensive filtering
+  - Repository::create_tag(name, target) -> Result<Tag> - create lightweight tag
+  - Repository::create_tag_with_options(name, target, options) -> Result<Tag> - create tag with options
+  - Repository::delete_tag(name) -> Result<()> - delete tag
+  - Repository::show_tag(name) -> Result<Tag> - detailed tag information
+  - Tag struct: name, hash, tag_type, message, tagger, timestamp
+  - TagType enum: Lightweight, Annotated
+  - TagList: Box<[Tag]> with iterator methods (iter, lightweight, annotated), search (find, find_containing, for_commit), counting (len, lightweight_count, annotated_count)
+  - TagOptions builder: annotated, force, message, sign with builder pattern (with_annotated, with_force, with_message, with_sign)
+  - Author struct: name, email, timestamp for annotated tag metadata
+- **Stash operations**: Complete stash management with type-safe API
+  - Repository::stash_list() -> Result<StashList> - list all stashes with comprehensive filtering
+  - Repository::stash_save(message) -> Result<Stash> - create simple stash
+  - Repository::stash_push(message, options) -> Result<Stash> - create stash with options
+  - Repository::stash_apply(index, options) -> Result<()> - apply stash without removing it
+  - Repository::stash_pop(index, options) -> Result<()> - apply and remove stash
+  - Repository::stash_show(index) -> Result<String> - show stash contents
+  - Repository::stash_drop(index) -> Result<()> - remove specific stash
+  - Repository::stash_clear() -> Result<()> - remove all stashes
+  - Stash struct: index, message, hash, branch, timestamp
+  - StashList: Box<[Stash]> with iterator methods (iter), search (find_containing, for_branch), access (latest, get), counting (len, is_empty)
+  - StashOptions builder: untracked, keep_index, patch, staged_only, paths with builder pattern (with_untracked, with_keep_index, with_patch, with_staged_only, with_paths)
+  - StashApplyOptions builder: restore_index, quiet with builder pattern (with_index, with_quiet)
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs, diff.rs, tag.rs, stash.rs (in src/commands/)
+- **Testing**: 161+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -118,6 +142,8 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 - **remote_operations.rs**: Complete remote management - add/remove/rename remotes, fetch/push operations with options, network operations, error handling
 - **file_lifecycle_operations.rs**: Comprehensive file management - restore/reset/remove/move operations, .gitignore management, advanced file lifecycle workflows, staging area manipulation
 - **diff_operations.rs**: Comprehensive diff operations showcase - unstaged/staged diffs, commit comparisons, advanced options (whitespace handling, path filtering), output formats (name-only, stat, numstat), and change analysis
+- **tag_operations.rs**: Complete tag management - create/delete/list tags, lightweight vs annotated tags, TagOptions builder, tag filtering and search, comprehensive tag workflows
+- **stash_operations.rs**: Complete stash management - save/apply/pop/list stashes, advanced options (untracked files, keep index, specific paths), stash filtering and search, comprehensive stash workflows
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
 
 Run examples with: `cargo run --example <example_name>`

@@ -606,6 +606,9 @@ mod tests {
             .set_user("Test User", "test@example.com")
             .unwrap();
 
+        // Disable tag signing for tests to ensure lightweight tags work
+        repo.config().set("tag.gpgsign", "false").unwrap();
+
         (repo, test_path)
     }
 

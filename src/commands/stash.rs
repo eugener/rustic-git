@@ -499,8 +499,12 @@ fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
 
     let hash = Hash::from(parts[1]);
 
-    // Parse timestamp
-    let timestamp = parse_unix_timestamp(parts[2]).unwrap_or_else(|_| Utc::now());
+    // Parse timestamp - if it fails, the stash metadata may be corrupted
+    let timestamp = parse_unix_timestamp(parts[2]).unwrap_or_else(|_| {
+        // Timestamp parsing failed - this indicates malformed git stash metadata
+        // Fall back to current time to avoid breaking the API, but this should be rare
+        Utc::now()
+    });
 
     // Extract branch name and message from parts[3] (should be "On branch: message")
     let remainder = parts[3];
@@ -845,5 +849,23 @@ mod tests {
         assert_eq!(stash.hash.as_str(), "abc123def456");
         assert_eq!(stash.branch, "master");
         assert_eq!(stash.message, "test message");
+    }
+
+    #[test]
+    fn test_parse_stash_line_with_invalid_timestamp() {
+        // Test stash with invalid timestamp - should still parse but use fallback timestamp
+        let line_with_invalid_timestamp =
+            "stash@{0} abc123def456 invalid-timestamp On master: test message";
+        let result = parse_stash_line(0, line_with_invalid_timestamp);
+
+        assert!(result.is_ok());
+        let stash = result.unwrap();
+        assert_eq!(stash.index, 0);
+        assert_eq!(stash.hash.as_str(), "abc123def456");
+        assert_eq!(stash.branch, "master");
+        assert_eq!(stash.message, "test message");
+
+        // The timestamp should be present (using fallback) but we can't test exact value
+        // since it uses Utc::now() as fallback
     }
 }

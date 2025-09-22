@@ -427,7 +427,7 @@ fn parse_for_each_ref_line(line: &str) -> Result<Tag> {
             let timestamp = parse_unix_timestamp(tagger_date).unwrap_or_else(|_| {
                 // Timestamp parsing failed - this indicates malformed git metadata
                 // Use Unix epoch (1970-01-01) as fallback to make data corruption obvious
-                DateTime::from_timestamp(0, 0).unwrap_or_else(Utc::now)
+                DateTime::from_timestamp(0, 0).unwrap()
             });
             Some(Author {
                 name: tagger_name.to_string(),

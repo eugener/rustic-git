@@ -423,11 +423,11 @@ fn parse_for_each_ref_line(line: &str) -> Result<Tag> {
     let tagger =
         if tag_type == TagType::Annotated && !tagger_name.is_empty() && !tagger_email.is_empty() {
             // Parse the timestamp - if it fails, the tag metadata may be corrupted
-            // We still create the Author but will handle timestamp separately below
+            // Use Unix epoch as fallback to clearly indicate corrupted/invalid timestamp data
             let timestamp = parse_unix_timestamp(tagger_date).unwrap_or_else(|_| {
                 // Timestamp parsing failed - this indicates malformed git metadata
-                // Fall back to current time to avoid breaking the API, but this should be rare
-                Utc::now()
+                // Use Unix epoch (1970-01-01) as fallback to make data corruption obvious
+                DateTime::from_timestamp(0, 0).unwrap_or_else(Utc::now)
             });
             Some(Author {
                 name: tagger_name.to_string(),
@@ -791,10 +791,16 @@ mod tests {
         assert_eq!(tag.tag_type, TagType::Annotated);
         assert!(tag.tagger.is_some());
 
-        // The timestamp should be present (using fallback) but we can't test exact value
-        // since it uses Utc::now() as fallback
+        // The timestamp should use Unix epoch (1970-01-01) as fallback for invalid data
         let tagger = tag.tagger.unwrap();
         assert_eq!(tagger.name, "John Doe");
         assert_eq!(tagger.email, "john@example.com");
+
+        // Verify fallback timestamp is Unix epoch (indicates data corruption)
+        assert_eq!(tagger.timestamp.timestamp(), 0); // Unix epoch
+        assert_eq!(
+            tagger.timestamp.format("%Y-%m-%d").to_string(),
+            "1970-01-01"
+        );
     }
 }

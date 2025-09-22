@@ -500,10 +500,11 @@ fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
     let hash = Hash::from(parts[1]);
 
     // Parse timestamp - if it fails, the stash metadata may be corrupted
+    // Use Unix epoch as fallback to clearly indicate corrupted/invalid timestamp data
     let timestamp = parse_unix_timestamp(parts[2]).unwrap_or_else(|_| {
         // Timestamp parsing failed - this indicates malformed git stash metadata
-        // Fall back to current time to avoid breaking the API, but this should be rare
-        Utc::now()
+        // Use Unix epoch (1970-01-01) as fallback to make data corruption obvious
+        DateTime::from_timestamp(0, 0).unwrap_or_else(Utc::now)
     });
 
     // Extract branch name and message from parts[3] (should be "On branch: message")
@@ -865,7 +866,9 @@ mod tests {
         assert_eq!(stash.branch, "master");
         assert_eq!(stash.message, "test message");
 
-        // The timestamp should be present (using fallback) but we can't test exact value
-        // since it uses Utc::now() as fallback
+        // The timestamp should use Unix epoch (1970-01-01) as fallback for invalid data
+        // Verify fallback timestamp is Unix epoch (indicates data corruption)
+        assert_eq!(stash.timestamp.timestamp(), 0); // Unix epoch
+        assert_eq!(stash.timestamp.format("%Y-%m-%d").to_string(), "1970-01-01");
     }
 }

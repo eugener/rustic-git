@@ -2,6 +2,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::error::{GitError, Result};
+use chrono::{DateTime, Utc};
 
 /// Executes a git command and returns the stdout as a String.
 /// Automatically handles error checking and provides descriptive error messages.
@@ -48,6 +49,32 @@ pub fn git_raw(args: &[&str], working_dir: Option<&Path>) -> Result<std::process
     }
 
     cmd.output().map_err(GitError::from)
+}
+
+/// Parse Unix timestamp to DateTime<Utc>
+///
+/// This utility function is used by both tag and stash parsing to convert
+/// Unix timestamps from git command output into DateTime objects.
+///
+/// # Arguments
+///
+/// * `timestamp_str` - The Unix timestamp as a string
+///
+/// # Returns
+///
+/// A `Result` containing the parsed DateTime or a `GitError` if parsing fails.
+/// If the input is empty, returns the current time as a fallback.
+pub fn parse_unix_timestamp(timestamp_str: &str) -> Result<DateTime<Utc>> {
+    if timestamp_str.is_empty() {
+        return Ok(Utc::now());
+    }
+
+    let timestamp: i64 = timestamp_str
+        .parse()
+        .map_err(|_| GitError::CommandFailed(format!("Invalid timestamp: {}", timestamp_str)))?;
+
+    DateTime::from_timestamp(timestamp, 0)
+        .ok_or_else(|| GitError::CommandFailed(format!("Invalid timestamp value: {}", timestamp)))
 }
 
 #[cfg(test)]
@@ -174,5 +201,28 @@ mod tests {
 
         let output = result.unwrap();
         assert!(output.contains("usage:") || output.contains("Git") || output.contains("git"));
+    }
+
+    #[test]
+    fn test_parse_unix_timestamp() {
+        // Test valid timestamp
+        let timestamp = "1642694400"; // January 20, 2022 12:00:00 UTC
+        let result = parse_unix_timestamp(timestamp);
+        assert!(result.is_ok());
+
+        let datetime = result.unwrap();
+        assert_eq!(datetime.timestamp(), 1642694400);
+
+        // Test empty string (should return current time)
+        let result = parse_unix_timestamp("");
+        assert!(result.is_ok());
+
+        // Test invalid timestamp
+        let result = parse_unix_timestamp("invalid");
+        assert!(result.is_err());
+
+        // Test out of range timestamp
+        let result = parse_unix_timestamp("999999999999999999");
+        assert!(result.is_err());
     }
 }

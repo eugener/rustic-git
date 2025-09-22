@@ -31,7 +31,7 @@
 use crate::error::{GitError, Result};
 use crate::repository::Repository;
 use crate::types::Hash;
-use crate::utils::git;
+use crate::utils::{git, parse_unix_timestamp};
 use chrono::{DateTime, Utc};
 use std::fmt;
 use std::path::PathBuf;
@@ -226,7 +226,7 @@ impl Repository {
         Self::ensure_git()?;
 
         let output = git(
-            &["stash", "list", "--format=%gd %H %gs"],
+            &["stash", "list", "--format=%gd %H %ct %gs"],
             Some(self.repo_path()),
         )?;
 
@@ -487,19 +487,34 @@ impl Repository {
 
 /// Parse a stash list line into a Stash struct
 fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
-    // Format: "stash@{0} hash On branch: message"
+    // Format: "stash@{0} hash timestamp On branch: message"
     let parts: Vec<&str> = line.splitn(4, ' ').collect();
 
     if parts.len() < 4 {
-        return Err(GitError::CommandFailed(
-            "Invalid stash list format".to_string(),
-        ));
+        return Err(GitError::CommandFailed(format!(
+            "Invalid stash list format: expected 4 parts, got {}",
+            parts.len()
+        )));
     }
 
     let hash = Hash::from(parts[1]);
 
+    // Parse timestamp - if it fails, the stash metadata may be corrupted
+    // Use Unix epoch as fallback to clearly indicate corrupted/invalid timestamp data
+    let timestamp = parse_unix_timestamp(parts[2]).unwrap_or_else(|_| {
+        // Timestamp parsing failed - this indicates malformed git stash metadata
+        // Use Unix epoch (1970-01-01) as fallback to make data corruption obvious
+        DateTime::from_timestamp(0, 0).unwrap_or_else(Utc::now)
+    });
+
     // Extract branch name and message from parts[3] (should be "On branch: message")
     let remainder = parts[3];
+    if remainder.is_empty() {
+        return Err(GitError::CommandFailed(
+            "Invalid stash format: missing branch and message information".to_string(),
+        ));
+    }
+
     let (branch, message) = if let Some(colon_pos) = remainder.find(':') {
         let branch_part = &remainder[..colon_pos];
         let message_part = &remainder[colon_pos + 1..].trim();
@@ -523,7 +538,7 @@ fn parse_stash_line(index: usize, line: &str) -> Result<Stash> {
         message,
         hash,
         branch,
-        timestamp: Utc::now(), // Simplified for now
+        timestamp,
     })
 }
 
@@ -791,5 +806,69 @@ mod tests {
         let display_str = format!("{}", stash);
         assert!(display_str.contains("stash@{0}"));
         assert!(display_str.contains("Test stash message"));
+    }
+
+    #[test]
+    fn test_parse_stash_line_invalid_format() {
+        // Test with insufficient parts
+        let invalid_line = "stash@{0} abc123"; // Only 2 parts instead of 4
+        let result = parse_stash_line(0, invalid_line);
+
+        assert!(result.is_err());
+        if let Err(GitError::CommandFailed(msg)) = result {
+            assert!(msg.contains("Invalid stash list format"));
+            assert!(msg.contains("expected 4 parts"));
+            assert!(msg.contains("got 2"));
+        } else {
+            panic!("Expected CommandFailed error with specific message");
+        }
+    }
+
+    #[test]
+    fn test_parse_stash_line_empty_remainder() {
+        // Test with empty remainder part
+        let invalid_line = "stash@{0} abc123 1234567890 "; // Empty 4th part
+        let result = parse_stash_line(0, invalid_line);
+
+        assert!(result.is_err());
+        if let Err(GitError::CommandFailed(msg)) = result {
+            assert!(msg.contains("missing branch and message information"));
+        } else {
+            panic!("Expected CommandFailed error for empty remainder");
+        }
+    }
+
+    #[test]
+    fn test_parse_stash_line_valid_format() {
+        // Test with valid format
+        let valid_line = "stash@{0} abc123def456 1234567890 On master: test message";
+        let result = parse_stash_line(0, valid_line);
+
+        assert!(result.is_ok());
+        let stash = result.unwrap();
+        assert_eq!(stash.index, 0);
+        assert_eq!(stash.hash.as_str(), "abc123def456");
+        assert_eq!(stash.branch, "master");
+        assert_eq!(stash.message, "test message");
+    }
+
+    #[test]
+    fn test_parse_stash_line_with_invalid_timestamp() {
+        // Test stash with invalid timestamp - should still parse but use fallback timestamp
+        let line_with_invalid_timestamp =
+            "stash@{0} abc123def456 invalid-timestamp On master: test message";
+        let result = parse_stash_line(0, line_with_invalid_timestamp);
+
+        assert!(result.is_ok());
+        let stash = result.unwrap();
+        assert_eq!(stash.index, 0);
+        assert_eq!(stash.hash.as_str(), "abc123def456");
+        assert_eq!(stash.branch, "master");
+        assert_eq!(stash.message, "test message");
+
+        // The timestamp should use Unix epoch (1970-01-01) as fallback for invalid data
+        // Verify fallback timestamp is Unix epoch (indicates data corruption)
+        assert_eq!(stash.timestamp.timestamp(), 0); // Unix epoch
+        assert_eq!(stash.timestamp.format("%Y-%m-%d").to_string(), "1970-01-01");
     }
 }

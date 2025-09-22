@@ -105,11 +105,11 @@
   - Repository::create_tag_with_options(name, target, options) -> Result<Tag> - create tag with options
   - Repository::delete_tag(name) -> Result<()> - delete tag
   - Repository::show_tag(name) -> Result<Tag> - detailed tag information
-  - Tag struct: name, hash, tag_type, message, tagger, timestamp
+  - Tag struct: name, hash, tag_type, message, tagger (may default), timestamp (may default)
   - TagType enum: Lightweight, Annotated
   - TagList: Box<[Tag]> with iterator methods (iter, lightweight, annotated), search (find, find_containing, for_commit), counting (len, lightweight_count, annotated_count)
   - TagOptions builder: annotated, force, message, sign with builder pattern (with_annotated, with_force, with_message, with_sign)
-  - Author struct: name, email, timestamp for annotated tag metadata
+  - Uses unified Author struct from log module for tagger metadata
 - **Stash operations**: Complete stash management with type-safe API
   - Repository::stash_list() -> Result<StashList> - list all stashes with comprehensive filtering
   - Repository::stash_save(message) -> Result<Stash> - create simple stash

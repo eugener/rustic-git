@@ -56,7 +56,7 @@
   - Author struct: name, email, timestamp with Display implementation
   - CommitMessage: subject and optional body parsing
   - CommitDetails: full commit info including file changes and diff stats
-- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs), DiffOutput, FileDiff, DiffStatus, DiffOptions, DiffStats, DiffChunk, DiffLine, DiffLineType (in src/commands/diff.rs), Tag, TagList, TagType, TagOptions (in src/commands/tag.rs), Stash, StashList, StashOptions, StashApplyOptions (in src/commands/stash.rs)
+- **Core types**: Hash (in src/types.rs), IndexStatus, WorktreeStatus, FileEntry (in src/commands/status.rs), Branch, BranchList, BranchType (in src/commands/branch.rs), Commit, CommitLog, Author, CommitMessage, CommitDetails, LogOptions (in src/commands/log.rs), RepoConfig (in src/commands/config.rs), Remote, RemoteList, FetchOptions, PushOptions (in src/commands/remote.rs), RestoreOptions, RemoveOptions, MoveOptions (in src/commands/files.rs), DiffOutput, FileDiff, DiffStatus, DiffOptions, DiffStats, DiffChunk, DiffLine, DiffLineType (in src/commands/diff.rs), Tag, TagList, TagType, TagOptions (in src/commands/tag.rs), Stash, StashList, StashOptions, StashApplyOptions (in src/commands/stash.rs), ResetMode (in src/commands/reset.rs)
 - **Utility functions**: git(args, working_dir) -> Result<String>, git_raw(args, working_dir) -> Result<Output>
 - **Remote management**: Full remote operations with network support
   - Repository::add_remote(name, url) -> Result<()> - add remote repository
@@ -123,8 +123,16 @@
   - StashList: Box<[Stash]> with iterator methods (iter), search (find_containing, for_branch), access (latest, get), counting (len, is_empty)
   - StashOptions builder: untracked, keep_index, patch, staged_only, paths with builder pattern (with_untracked, with_keep_index, with_patch, with_staged_only, with_paths)
   - StashApplyOptions builder: restore_index, quiet with builder pattern (with_index, with_quiet)
-- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs, diff.rs, tag.rs, stash.rs (in src/commands/)
-- **Testing**: 161+ tests covering all functionality with comprehensive edge cases
+- **Reset operations**: Complete reset functionality with type-safe API
+  - Repository::reset_soft(commit) -> Result<()> - move HEAD, keep index and working tree
+  - Repository::reset_mixed(commit) -> Result<()> - move HEAD, reset index, keep working tree (default)
+  - Repository::reset_hard(commit) -> Result<()> - reset HEAD, index, and working tree to commit state
+  - Repository::reset_with_mode(commit, mode) -> Result<()> - flexible reset with explicit ResetMode
+  - Repository::reset_file(path) -> Result<()> - unstage specific file (already exists in files.rs)
+  - ResetMode enum: Soft, Mixed, Hard with const as_str() methods
+  - Complete error handling for invalid commits and references
+- **Command modules**: status.rs, add.rs, commit.rs, branch.rs, log.rs, config.rs, remote.rs, files.rs, diff.rs, tag.rs, stash.rs, reset.rs (in src/commands/)
+- **Testing**: 178+ tests covering all functionality with comprehensive edge cases
 - Run `cargo fmt && cargo build && cargo test && cargo clippy --all-targets --all-features -- -D warnings` after code changes
 - Make sure all examples are running
 
@@ -144,6 +152,7 @@ The `examples/` directory contains comprehensive demonstrations of library funct
 - **diff_operations.rs**: Comprehensive diff operations showcase - unstaged/staged diffs, commit comparisons, advanced options (whitespace handling, path filtering), output formats (name-only, stat, numstat), and change analysis
 - **tag_operations.rs**: Complete tag management - create/delete/list tags, lightweight vs annotated tags, TagOptions builder, tag filtering and search, comprehensive tag workflows
 - **stash_operations.rs**: Complete stash management - save/apply/pop/list stashes, advanced options (untracked files, keep index, specific paths), stash filtering and search, comprehensive stash workflows
+- **reset_operations.rs**: Complete reset management - soft/mixed/hard resets, commit targeting, file-specific resets, error handling for invalid commits, comprehensive reset workflows
 - **error_handling.rs**: Comprehensive error handling patterns - GitError variants, recovery strategies
 
 Run examples with: `cargo run --example <example_name>`

@@ -6,6 +6,7 @@ pub mod diff;
 pub mod files;
 pub mod log;
 pub mod remote;
+pub mod reset;
 pub mod stash;
 pub mod status;
 pub mod tag;
@@ -18,6 +19,7 @@ pub use diff::{
 pub use files::{MoveOptions, RemoveOptions, RestoreOptions};
 pub use log::{Author, Commit, CommitDetails, CommitLog, CommitMessage, LogOptions};
 pub use remote::{FetchOptions, PushOptions, Remote, RemoteList};
+pub use reset::ResetMode;
 pub use stash::{Stash, StashApplyOptions, StashList, StashOptions};
 pub use status::{FileEntry, GitStatus, IndexStatus, WorktreeStatus};
 pub use tag::{Tag, TagList, TagOptions, TagType};

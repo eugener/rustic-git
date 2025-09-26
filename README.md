@@ -34,6 +34,8 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 - ✅ **Lightweight and annotated tags** with type-safe API
 - ✅ **Stash operations** with comprehensive stash management and filtering
 - ✅ **Advanced stash options** (untracked files, keep index, specific paths)
+- ✅ **Reset operations** with comprehensive soft/mixed/hard reset support
+- ✅ **Repository history management** with type-safe ResetMode API
 - ✅ Type-safe error handling with custom GitError enum
 - ✅ Universal `Hash` type for Git objects
 - ✅ **Immutable collections** (Box<[T]>) for memory efficiency

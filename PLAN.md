@@ -18,6 +18,7 @@
 - **Diff operations with multi-level API and comprehensive options**
 - **Tag management with comprehensive operations and filtering**
 - **Stash operations with comprehensive management and filtering**
+- **Reset operations with comprehensive reset modes and error handling**
 
 ## ✅ Phase 1: Essential Remote Operations (COMPLETED)
 
@@ -77,12 +78,6 @@
 - [x] Type-safe TagType enum (Lightweight, Annotated)
 - [x] Complete tag metadata support (message, tagger, timestamp)
 
-## Phase 5: Release Management (Medium Priority)
-
-### Archive & Export
-- [ ] `repo.archive(format, output_path)` - Create repository archive
-- [ ] `repo.export_commit(hash, path)` - Export specific commit
-
 ## ✅ Phase 4: Stash Operations (COMPLETED)
 
 ### ✅ Stash Management
@@ -98,7 +93,26 @@
 - [x] StashApplyOptions builder with restore_index, quiet options
 - [x] Complete stash metadata support (index, message, hash, branch, timestamp)
 
-## Phase 6: Development Workflow (Medium Priority)
+## ✅ Phase 5: Reset Operations (COMPLETED)
+
+### ✅ Reset Management
+- [x] `repo.reset_soft(commit)` - Move HEAD, keep index and working tree
+- [x] `repo.reset_mixed(commit)` - Move HEAD, reset index, keep working tree (default)
+- [x] `repo.reset_hard(commit)` - Reset HEAD, index, and working tree to commit state
+- [x] `repo.reset_with_mode(commit, mode)` - Flexible reset with explicit ResetMode
+- [x] `repo.reset_file(path)` - Unstage specific file (already exists in files.rs)
+- [x] ResetMode enum with type-safe mode selection (Soft, Mixed, Hard)
+- [x] Complete error handling for invalid commits and references
+- [x] Comprehensive reset workflows with file-specific operations
+- [x] Cross-platform temporary directory handling for tests
+
+## Phase 6: Release Management (Medium Priority)
+
+### Archive & Export
+- [ ] `repo.archive(format, output_path)` - Create repository archive
+- [ ] `repo.export_commit(hash, path)` - Export specific commit
+
+## Phase 7: Development Workflow (Medium Priority)
 
 ### Merge & Rebase
 - [ ] `repo.merge(branch)` / `repo.merge_commit(hash)` - Merge operations
@@ -107,7 +121,7 @@
 - [ ] Conflict resolution helpers and status
 - [ ] `repo.abort_merge()` / `repo.abort_rebase()` - Abort operations
 
-## Phase 7: Advanced Configuration (Medium Priority)
+## Phase 8: Advanced Configuration (Medium Priority)
 
 ### Enhanced Configuration
 - [ ] `Config::global()` - Global git configuration
@@ -122,7 +136,7 @@
 - [ ] `repo.hooks().remove(hook_type)` - Remove hooks
 - [ ] Pre-built common hooks (pre-commit, pre-push, etc.)
 
-## Phase 8: Repository Analysis (Low Priority)
+## Phase 9: Repository Analysis (Low Priority)
 
 ### History & Inspection
 - [ ] `repo.show(hash)` - Show commit with full diff
@@ -136,7 +150,7 @@
 - [ ] `repo.size_analysis()` - Large files, repository size analysis
 - [ ] `repo.gc()` / `repo.fsck()` - Maintenance operations
 
-## Phase 9: Advanced Features (Low Priority)
+## Phase 10: Advanced Features (Low Priority)
 
 ### Worktree Support
 - [ ] `repo.worktree_add(path, branch)` - Add worktree

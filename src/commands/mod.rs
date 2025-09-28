@@ -5,6 +5,7 @@ pub mod config;
 pub mod diff;
 pub mod files;
 pub mod log;
+pub mod merge;
 pub mod remote;
 pub mod reset;
 pub mod stash;
@@ -18,6 +19,7 @@ pub use diff::{
 };
 pub use files::{MoveOptions, RemoveOptions, RestoreOptions};
 pub use log::{Author, Commit, CommitDetails, CommitLog, CommitMessage, LogOptions};
+pub use merge::{FastForwardMode, MergeOptions, MergeStatus, MergeStrategy};
 pub use remote::{FetchOptions, PushOptions, Remote, RemoteList};
 pub use reset::ResetMode;
 pub use stash::{Stash, StashApplyOptions, StashList, StashOptions};

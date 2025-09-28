@@ -2,7 +2,7 @@
 
 ## Current Status
 
-✅ **Completed Core Features**
+**Completed Core Features**
 - Repository initialization and opening
 - Enhanced file status checking with staged/unstaged tracking
 - Staging operations (add, add_all, add_update)
@@ -18,96 +18,122 @@
 - **Diff operations with multi-level API and comprehensive options**
 - **Tag management with comprehensive operations and filtering**
 - **Stash operations with comprehensive management and filtering**
+- **Reset operations with comprehensive reset modes and error handling**
 
-## ✅ Phase 1: Essential Remote Operations (COMPLETED)
+##Phase 1: Essential Remote Operations (COMPLETED)
 
-### ✅ Remote Management
-- [x] `repo.add_remote(name, url)` - Add remote repository
-- [x] `repo.remove_remote(name)` - Remove remote
-- [x] `repo.list_remotes()` - List all remotes with URLs
-- [x] `repo.rename_remote(old_name, new_name)` - Rename remote
-- [x] `repo.get_remote_url(name)` - Get remote URL
+###Remote Management
+- [x]`repo.add_remote(name, url)` - Add remote repository
+- [x]`repo.remove_remote(name)` - Remove remote
+- [x]`repo.list_remotes()` - List all remotes with URLs
+- [x]`repo.rename_remote(old_name, new_name)` - Rename remote
+- [x]`repo.get_remote_url(name)` - Get remote URL
 
-### ✅ Network Operations
-- [x] `repo.fetch(remote)` / `repo.fetch_with_options()` - Fetch from remotes
-- [x] `repo.push(remote, branch)` / `repo.push_with_options()` - Push changes
-- [x] `repo.clone(url, path)` - Clone repository (static method)
-- [x] Advanced options with FetchOptions and PushOptions
-- [x] Type-safe builder patterns for network operations
+###Network Operations
+- [x]`repo.fetch(remote)` / `repo.fetch_with_options()` - Fetch from remotes
+- [x]`repo.push(remote, branch)` / `repo.push_with_options()` - Push changes
+- [x]`repo.clone(url, path)` - Clone repository (static method)
+- [x]Advanced options with FetchOptions and PushOptions
+- [x]Type-safe builder patterns for network operations
 
-## ✅ Phase 2: File Lifecycle Operations (COMPLETED)
+##Phase 2: File Lifecycle Operations (COMPLETED)
 
-### ✅ File Management
-- [x] `repo.checkout_file(path)` - Restore file from HEAD
-- [x] `repo.reset_file(path)` - Unstage specific file
-- [x] `repo.rm(paths)` - Remove files from repository
-- [x] `repo.rm_with_options(paths, options)` - Remove with advanced options
-- [x] `repo.mv(from, to)` - Move/rename files in repository
-- [x] `repo.mv_with_options(source, dest, options)` - Move with advanced options
-- [x] `repo.restore(paths, options)` - Restore files from specific commit with advanced options
+###File Management
+- [x]`repo.checkout_file(path)` - Restore file from HEAD
+- [x]`repo.reset_file(path)` - Unstage specific file
+- [x]`repo.rm(paths)` - Remove files from repository
+- [x]`repo.rm_with_options(paths, options)` - Remove with advanced options
+- [x]`repo.mv(from, to)` - Move/rename files in repository
+- [x]`repo.mv_with_options(source, dest, options)` - Move with advanced options
+- [x]`repo.restore(paths, options)` - Restore files from specific commit with advanced options
 
-### ✅ Ignore Management
-- [x] `repo.ignore_add(patterns)` - Add patterns to .gitignore
-- [x] `repo.ignore_check(file)` - Check if file is ignored
-- [x] `repo.ignore_list()` - List current ignore patterns
+###Ignore Management
+- [x]`repo.ignore_add(patterns)` - Add patterns to .gitignore
+- [x]`repo.ignore_check(file)` - Check if file is ignored
+- [x]`repo.ignore_list()` - List current ignore patterns
 
-### ✅ Advanced File Operations
-- [x] RestoreOptions with source, staged, and worktree control
-- [x] RemoveOptions with force, recursive, cached, and ignore-unmatch
-- [x] MoveOptions with force, verbose, and dry-run modes
-- [x] Type-safe builder patterns for all file operations
+###Advanced File Operations
+- [x]RestoreOptions with source, staged, and worktree control
+- [x]RemoveOptions with force, recursive, cached, and ignore-unmatch
+- [x]MoveOptions with force, verbose, and dry-run modes
+- [x]Type-safe builder patterns for all file operations
 
-### 🔄 Remote Branch Tracking (Future Enhancement)
+### Remote Branch Tracking (Future Enhancement)
 - [ ] `repo.branch_set_upstream(branch, remote_branch)` - Set tracking
 - [ ] `repo.branch_track(local, remote)` - Track remote branch
 - [ ] Remote branch listing and status
 - [ ] Pull operations (fetch + merge)
 
 
-## ✅ Phase 3: Tag Operations (COMPLETED)
+##Phase 3: Tag Operations (COMPLETED)
 
-### ✅ Tag Management
-- [x] `repo.tags()` - List all tags with comprehensive filtering
-- [x] `repo.create_tag(name, target)` - Create lightweight tag
-- [x] `repo.create_tag_with_options(name, target, options)` - Create tag with options
-- [x] `repo.delete_tag(name)` - Delete tag
-- [x] `repo.show_tag(name)` - Get detailed tag information
-- [x] TagList with filtering (lightweight, annotated, find_containing, for_commit)
-- [x] TagOptions builder with force, message, sign, annotated options
-- [x] Type-safe TagType enum (Lightweight, Annotated)
-- [x] Complete tag metadata support (message, tagger, timestamp)
+###Tag Management
+- [x]`repo.tags()` - List all tags with comprehensive filtering
+- [x]`repo.create_tag(name, target)` - Create lightweight tag
+- [x]`repo.create_tag_with_options(name, target, options)` - Create tag with options
+- [x]`repo.delete_tag(name)` - Delete tag
+- [x]`repo.show_tag(name)` - Get detailed tag information
+- [x]TagList with filtering (lightweight, annotated, find_containing, for_commit)
+- [x]TagOptions builder with force, message, sign, annotated options
+- [x]Type-safe TagType enum (Lightweight, Annotated)
+- [x]Complete tag metadata support (message, tagger, timestamp)
 
-## Phase 5: Release Management (Medium Priority)
+##Phase 4: Stash Operations (COMPLETED)
+
+###Stash Management
+- [x]`repo.stash_save(message)` - Save current changes
+- [x]`repo.stash_push(message, options)` - Stash with advanced options
+- [x]`repo.stash_list()` - List all stashes with comprehensive filtering
+- [x]`repo.stash_apply(index, options)` - Apply stash without removing it
+- [x]`repo.stash_pop(index, options)` - Apply and remove stash
+- [x]`repo.stash_drop(index)` / `repo.stash_clear()` - Remove stashes
+- [x]`repo.stash_show(index)` - Show stash contents
+- [x]StashList with filtering (find_containing, for_branch, latest, get)
+- [x]StashOptions builder with untracked, keep_index, patch, staged_only, paths
+- [x]StashApplyOptions builder with restore_index, quiet options
+- [x]Complete stash metadata support (index, message, hash, branch, timestamp)
+
+##Phase 5: Reset Operations (COMPLETED)
+
+###Reset Management
+- [x]`repo.reset_soft(commit)` - Move HEAD, keep index and working tree
+- [x]`repo.reset_mixed(commit)` - Move HEAD, reset index, keep working tree (default)
+- [x]`repo.reset_hard(commit)` - Reset HEAD, index, and working tree to commit state
+- [x]`repo.reset_with_mode(commit, mode)` - Flexible reset with explicit ResetMode
+- [x]`repo.reset_file(path)` - Unstage specific file (already exists in files.rs)
+- [x]ResetMode enum with type-safe mode selection (Soft, Mixed, Hard)
+- [x]Complete error handling for invalid commits and references
+- [x]Comprehensive reset workflows with file-specific operations
+- [x]Cross-platform temporary directory handling for tests
+
+##Phase 6: Merge Operations (COMPLETED)
+
+###Merge Management
+- [x]`repo.merge(branch)` - Merge branch into current branch
+- [x]`repo.merge_with_options(branch, options)` - Merge with advanced options
+- [x]`repo.merge_in_progress()` - Check if merge is currently in progress
+- [x]`repo.abort_merge()` - Cancel ongoing merge operation
+- [x]MergeStatus enum with Success, FastForward, UpToDate, Conflicts variants
+- [x]MergeOptions builder with fast_forward, strategy, commit_message, no_commit options
+- [x]FastForwardMode enum: Auto, Only, Never with const as_str() methods
+- [x]MergeStrategy enum: Recursive, Ours, Theirs with const as_str() methods
+- [x]Complete conflict detection with file-level granularity
+- [x]Comprehensive merge workflows with error handling
+
+## Phase 7: Release Management (Medium Priority)
 
 ### Archive & Export
 - [ ] `repo.archive(format, output_path)` - Create repository archive
 - [ ] `repo.export_commit(hash, path)` - Export specific commit
 
-## ✅ Phase 4: Stash Operations (COMPLETED)
+## Phase 8: Development Workflow (Medium Priority)
 
-### ✅ Stash Management
-- [x] `repo.stash_save(message)` - Save current changes
-- [x] `repo.stash_push(message, options)` - Stash with advanced options
-- [x] `repo.stash_list()` - List all stashes with comprehensive filtering
-- [x] `repo.stash_apply(index, options)` - Apply stash without removing it
-- [x] `repo.stash_pop(index, options)` - Apply and remove stash
-- [x] `repo.stash_drop(index)` / `repo.stash_clear()` - Remove stashes
-- [x] `repo.stash_show(index)` - Show stash contents
-- [x] StashList with filtering (find_containing, for_branch, latest, get)
-- [x] StashOptions builder with untracked, keep_index, patch, staged_only, paths
-- [x] StashApplyOptions builder with restore_index, quiet options
-- [x] Complete stash metadata support (index, message, hash, branch, timestamp)
-
-## Phase 6: Development Workflow (Medium Priority)
-
-### Merge & Rebase
-- [ ] `repo.merge(branch)` / `repo.merge_commit(hash)` - Merge operations
+### Rebase & Cherry-pick
 - [ ] `repo.rebase(onto_branch)` - Rebase current branch
 - [ ] `repo.cherry_pick(hash)` - Cherry-pick commit
-- [ ] Conflict resolution helpers and status
-- [ ] `repo.abort_merge()` / `repo.abort_rebase()` - Abort operations
+- [ ] `repo.abort_rebase()` - Abort rebase operations
 
-## Phase 7: Advanced Configuration (Medium Priority)
+## Phase 9: Advanced Configuration (Medium Priority)
 
 ### Enhanced Configuration
 - [ ] `Config::global()` - Global git configuration
@@ -122,7 +148,7 @@
 - [ ] `repo.hooks().remove(hook_type)` - Remove hooks
 - [ ] Pre-built common hooks (pre-commit, pre-push, etc.)
 
-## Phase 8: Repository Analysis (Low Priority)
+## Phase 10: Repository Analysis (Low Priority)
 
 ### History & Inspection
 - [ ] `repo.show(hash)` - Show commit with full diff
@@ -136,7 +162,7 @@
 - [ ] `repo.size_analysis()` - Large files, repository size analysis
 - [ ] `repo.gc()` / `repo.fsck()` - Maintenance operations
 
-## Phase 9: Advanced Features (Low Priority)
+## Phase 11: Advanced Features (Low Priority)
 
 ### Worktree Support
 - [ ] `repo.worktree_add(path, branch)` - Add worktree

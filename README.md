@@ -16,29 +16,33 @@ Rustic Git provides a simple, ergonomic interface for common Git operations. It 
 
 ## Features
 
-- ✅ Repository initialization and opening
-- ✅ **Enhanced file status checking** with separate staged/unstaged tracking
-- ✅ **Precise Git state representation** using IndexStatus and WorktreeStatus enums
-- ✅ File staging (add files, add all, add updates)
-- ✅ Commit creation with hash return
-- ✅ **Complete branch operations** with type-safe Branch API
-- ✅ **Branch management** (create, delete, checkout, list)
-- ✅ **Commit history & log operations** with multi-level API
-- ✅ **Advanced commit querying** with filtering and analysis
-- ✅ **Repository configuration management** with type-safe API
-- ✅ **Remote management** with full CRUD operations and network support
-- ✅ **Network operations** (fetch, push, clone) with advanced options
-- ✅ **File lifecycle operations** (restore, reset, remove, move, .gitignore management)
-- ✅ **Diff operations** with multi-level API and comprehensive options
-- ✅ **Tag management** with comprehensive operations and filtering
-- ✅ **Lightweight and annotated tags** with type-safe API
-- ✅ **Stash operations** with comprehensive stash management and filtering
-- ✅ **Advanced stash options** (untracked files, keep index, specific paths)
-- ✅ Type-safe error handling with custom GitError enum
-- ✅ Universal `Hash` type for Git objects
-- ✅ **Immutable collections** (Box<[T]>) for memory efficiency
-- ✅ **Const enum conversions** with zero runtime cost
-- ✅ Comprehensive test coverage (161+ tests)
+-Repository initialization and opening
+-**Enhanced file status checking** with separate staged/unstaged tracking
+-**Precise Git state representation** using IndexStatus and WorktreeStatus enums
+-File staging (add files, add all, add updates)
+-Commit creation with hash return
+-**Complete branch operations** with type-safe Branch API
+-**Branch management** (create, delete, checkout, list)
+-**Commit history & log operations** with multi-level API
+-**Advanced commit querying** with filtering and analysis
+-**Repository configuration management** with type-safe API
+-**Remote management** with full CRUD operations and network support
+-**Network operations** (fetch, push, clone) with advanced options
+-**File lifecycle operations** (restore, reset, remove, move, .gitignore management)
+-**Diff operations** with multi-level API and comprehensive options
+-**Tag management** with comprehensive operations and filtering
+-**Lightweight and annotated tags** with type-safe API
+-**Stash operations** with comprehensive stash management and filtering
+-**Advanced stash options** (untracked files, keep index, specific paths)
+-**Reset operations** with comprehensive soft/mixed/hard reset support
+-**Repository history management** with type-safe ResetMode API
+-**Merge operations** with comprehensive branch merging and conflict handling
+-**Advanced merge options** (fast-forward control, merge strategies, conflict detection)
+-Type-safe error handling with custom GitError enum
+-Universal `Hash` type for Git objects
+-**Immutable collections** (Box<[T]>) for memory efficiency
+-**Const enum conversions** with zero runtime cost
+-Comprehensive test coverage (187+ tests)
 
 ## Installation
 

@@ -579,8 +579,7 @@ fn parse_diff_stats(output: &str) -> (Vec<PathBuf>, usize, usize) {
 
                 // Distribute changes based on +/- ratio
                 let total_symbols = plus_count + minus_count;
-                if total_symbols > 0 {
-                    let insertions = (changes * plus_count) / total_symbols;
+                if let Some(insertions) = (changes * plus_count).checked_div(total_symbols) {
                     let deletions = changes - insertions;
                     total_insertions += insertions;
                     total_deletions += deletions;
